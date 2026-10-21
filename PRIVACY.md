@@ -20,6 +20,7 @@ what triggers them. If you find one that is not listed here, please report it as
 
 | What | Where | How to enable |
 |---|---|---|
+| AI features and the local agent server (chat, inline edit, completions) | The server itself makes no connection; it is what every AI-related row on this page goes through. While AI is off it is not started at all. | `sidex.ai.enabled` in user settings, or scmCode Settings → General → AI Features |
 | Live model pricing refresh | `openrouter.ai` (unauthenticated GET, at startup and hourly) | `SIDEX_LIVE_PRICING=1` in the environment |
 | Fallback model endpoint | Whatever `OPENROUTER_BASE_URL` points to | Set `OPENROUTER_BASE_URL` |
 | Update checks | The endpoint you configure | `plugins.updater.endpoints` in `tauri.conf.json` or `SIDEX_UPDATE_ENDPOINT`, plus `update.mode` in settings. Updates without a valid signature from your own `pubkey` are refused. |
@@ -28,7 +29,8 @@ what triggers them. If you find one that is not listed here, please report it as
 | Remote sandbox for agent commands | Daytona (`app.daytona.io`, or `DAYTONA_API_URL`): the commands the agent runs in the sandbox and the files it reads and writes there | Only if `DAYTONA_API_KEY` is set; without it the sandbox uses a local Docker container |
 
 Note: the agent server inherits the environment the app was launched from, so these
-variables also take effect if they are already exported in your shell.
+variables also take effect if they are already exported in your shell. They only matter
+while AI is on, since the agent server isn't started otherwise.
 
 ## Only when you do something
 

@@ -15,6 +15,9 @@
 //! server is up, a lightweight watchdog notices if it dies later and tries to
 //! bring it back, also bounded (`MAX_CRASH_RESTARTS`), so a server that is
 //! crash-looping on its own doesn't spin the watchdog forever.
+//!
+//! scmCode: AI is opt-in: the server only runs while the `sidex.ai.enabled` user
+//! setting is on (see `ai_enabled`). With it off nothing is spawned at all.
 
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader};
@@ -25,10 +28,21 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
+use serde_json::Value;
+use sidex_settings::Settings;
 use tauri::{AppHandle, Manager};
 
 use crate::commands::providers;
 use crate::commands::secrets::SecretsStore;
+use crate::commands::settings::SettingsStore;
+
+/// User setting that turns the AI features on. Off by default.
+const AI_ENABLED_SETTING: &str = "sidex.ai.enabled";
+
+/// Recorded as the server's error while AI is off, so anything that asks for
+/// the endpoint learns why there is no server instead of a generic failure.
+const AI_DISABLED_MSG: &str =
+    "AI features are turned off. Enable them in scmCode Settings to start the agent server.";
 
 /// How long to wait for the server to answer `/v1/health` before giving up.
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(20);
@@ -569,14 +583,48 @@ fn start(app: &AppHandle, server: &Arc<LocalServer>) {
     std::thread::spawn(move || run_supervised(&server, &bin, &provider_env, port, generation));
 }
 
-/// Register the supervisor and start the server. Called once during setup.
+/// Whether the user has turned AI on. Only the user layer counts, so a
+/// workspace's settings can't start the server behind the user's back; a
+/// missing or non-boolean value means off.
+fn ai_enabled(settings: &Settings) -> bool {
+    settings
+        .user_layer()
+        .get(AI_ENABLED_SETTING)
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+}
+
+fn ai_enabled_in(app: &AppHandle) -> bool {
+    let store = app.state::<Arc<SettingsStore>>();
+    let settings = store
+        .inner
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    ai_enabled(&settings)
+}
+
+/// Run `start` only while AI is on; otherwise record why there is no server.
+fn start_if_enabled(enabled: bool, server: &LocalServer, start: impl FnOnce()) {
+    if enabled {
+        start();
+    } else {
+        log::info!("[sidex-server] not started: AI features are turned off");
+        server.with_proc(|p| p.error = Some(AI_DISABLED_MSG.to_string()));
+    }
+}
+
+/// Register the supervisor and, if AI is on, start the server. Called once
+/// during setup, after user settings are loaded. The supervisor is registered
+/// either way so `server_endpoint` can report why there is no server.
 pub fn initialize(app: &AppHandle) {
     let server = Arc::new(LocalServer::new());
     app.manage(Arc::clone(&server));
-    start(app, &server);
+    start_if_enabled(ai_enabled_in(app), &server, || start(app, &server));
 }
 
-/// Restart the server so newly-saved provider credentials take effect.
+/// Stop the server and start it again if AI is on. Called when provider
+/// credentials change, and when the AI setting is toggled, so turning AI off
+/// stops the server and turning it on starts it.
 #[tauri::command]
 pub fn server_restart(app: AppHandle) -> Result<ServerEndpoint, String> {
     let server = app
@@ -585,7 +633,7 @@ pub fn server_restart(app: AppHandle) -> Result<ServerEndpoint, String> {
         .inner()
         .clone();
     server.shutdown();
-    start(&app, &server);
+    start_if_enabled(ai_enabled_in(&app), &server, || start(&app, &server));
     Ok(server.endpoint())
 }
 
@@ -788,5 +836,52 @@ mod tests {
             "mcp: connected to \"foo\" (stdio) — 3 tools registered"
         ));
         assert!(!looks_like_a_problem("cleaned up session abc123"));
+    }
+
+    /// AI is opt-in: only an explicit `true` in the user's own settings turns
+    /// it on. A workspace can't, and neither can a value that merely looks
+    /// truthy.
+    #[test]
+    fn ai_is_off_unless_the_user_turns_it_on() {
+        let mut settings = Settings::new();
+        assert!(!ai_enabled(&settings), "a clean profile has AI off");
+
+        settings.set(AI_ENABLED_SETTING, Value::Bool(false));
+        assert!(!ai_enabled(&settings));
+
+        settings.set(AI_ENABLED_SETTING, Value::String("true".into()));
+        assert!(!ai_enabled(&settings), "only a real boolean counts");
+
+        settings.set(AI_ENABLED_SETTING, Value::Bool(true));
+        assert!(ai_enabled(&settings));
+
+        let mut from_workspace = Settings::new();
+        from_workspace.set_workspace(AI_ENABLED_SETTING, Value::Bool(true));
+        assert!(
+            !ai_enabled(&from_workspace),
+            "a workspace's settings must not start the server"
+        );
+    }
+
+    /// With AI off the supervisor must not spawn anything, and the endpoint
+    /// has to say why there is no server.
+    #[test]
+    fn supervisor_does_not_spawn_while_ai_is_off() {
+        let server = LocalServer::new();
+        start_if_enabled(false, &server, || panic!("must not start while AI is off"));
+
+        let ep = server.endpoint();
+        assert!(!ep.running);
+        assert_eq!(ep.error.as_deref(), Some(AI_DISABLED_MSG));
+    }
+
+    #[test]
+    fn supervisor_starts_once_ai_is_on() {
+        let server = LocalServer::new();
+        let mut started = false;
+        start_if_enabled(true, &server, || started = true);
+
+        assert!(started);
+        assert_eq!(server.endpoint().error, None);
     }
 }

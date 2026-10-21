@@ -216,9 +216,10 @@ export class WorkbenchContextKeysHandler extends Disposable {
 		// This condition is met:
 		// - desktop: always
 		// -     web: only when connected to a remote
+		// scmCode: also under Tauri, where *.code-workspace files are read through the file:// provider
 		this.enterMultiRootWorkspaceSupportContext = EnterMultiRootWorkspaceSupportContext.bindTo(this.contextKeyService);
 		this.enterMultiRootWorkspaceSupportContext.set(
-			isNative || typeof this.environmentService.remoteAuthority === 'string'
+			isNative || !!(globalThis as any).__SIDEX_TAURI__ || typeof this.environmentService.remoteAuthority === 'string'
 		);
 
 		// Editor Layout

@@ -764,6 +764,7 @@ pub fn run() {
             commands::search_text,
             commands::create_window,
             commands::close_window,
+            commands::exit_app,
             commands::set_window_title,
             commands::get_monitors,
             commands::save_window_state,

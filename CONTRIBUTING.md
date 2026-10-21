@@ -50,7 +50,7 @@ scmCode name. Don't mass-rename internals.
 ### TypeScript
 - Follow the existing VSCode patterns in the codebase
 - Use `.js` extensions on imports (ES modules)
-- Use VSCode's DI pattern with `@inject` decorators
+- Use VS Code's dependency injection: services declared with `createDecorator` and injected as constructor parameter decorators
 
 ### Rust
 - Commands go in `src-tauri/src/commands/`

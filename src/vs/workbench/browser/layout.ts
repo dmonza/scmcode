@@ -122,7 +122,7 @@ import { DeferredPromise, Promises } from '../../base/common/async.js';
 import { IBannerService } from '../services/banner/browser/bannerService.js';
 import { IPaneCompositePartService } from '../services/panecomposite/browser/panecomposite.js';
 import { AuxiliaryBarPart } from './parts/auxiliarybar/auxiliaryBarPart.js';
-import { SidexPart } from './parts/sidex/sidexPart.js';
+import { SIDEX_AI_ENABLED_SETTING, SidexPart } from './parts/sidex/sidexPart.js';
 import { ITelemetryService } from '../../platform/telemetry/common/telemetry.js';
 import { IAuxiliaryWindowService } from '../services/auxiliaryWindow/browser/auxiliaryWindowService.js';
 import { CodeWindow, mainWindow } from '../../base/browser/window.js';
@@ -992,8 +992,11 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 			}
 		}
 
-		// Sidex View to restore
-		if (this.isVisible(Parts.SIDEX_PART)) {
+		// Sidex View to restore. scmCode: with AI off the panel stays hidden,
+		// whatever the stored state says.
+		if (!this.configurationService.getValue<boolean>(SIDEX_AI_ENABLED_SETTING)) {
+			this.stateModel.setRuntimeValue(LayoutStateKeys.SIDEX_HIDDEN, true);
+		} else if (this.isVisible(Parts.SIDEX_PART)) {
 			const viewContainerToRestore = this.storageService.get(
 				SidexPart.activeViewSettingsKey,
 				StorageScope.WORKSPACE,
@@ -2759,6 +2762,10 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 	}
 
 	private setSidexHidden(hidden: boolean, skipLayout?: boolean): void {
+		// scmCode: never show the panel while AI is off.
+		if (!hidden && !this.configurationService.getValue<boolean>(SIDEX_AI_ENABLED_SETTING)) {
+			return;
+		}
 		this.stateModel.setRuntimeValue(LayoutStateKeys.SIDEX_HIDDEN, hidden);
 
 		// Adjust CSS

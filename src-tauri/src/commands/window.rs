@@ -69,6 +69,14 @@ pub fn close_window(app: AppHandle, label: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to close window '{label}': {e}"))
 }
 
+/// Quits the whole app (File > Exit). `RunEvent::Exit` then kills the child
+/// processes we spawned.
+#[allow(clippy::needless_pass_by_value)]
+#[tauri::command]
+pub fn exit_app(app: AppHandle) {
+    app.exit(0);
+}
+
 #[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn set_window_title(app: AppHandle, label: String, title: String) -> Result<(), String> {

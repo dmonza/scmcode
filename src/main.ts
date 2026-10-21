@@ -20,8 +20,20 @@ async function sidexOpenFolder() {
 (window as any).__sidex_openFolder = sidexOpenFolder;
 
 function navigateToFolder(folderUri: string) {
+	navigateTo({ folder: folderUri });
+}
+
+// Reloads the window on a folder, a workspace file or (with neither) an empty window
+function navigateTo(target: { folder?: string; workspace?: string }) {
 	const url = new URL(window.location.href);
-	url.searchParams.set('folder', folderUri);
+	url.searchParams.delete('folder');
+	url.searchParams.delete('workspace');
+	if (target.folder) {
+		url.searchParams.set('folder', target.folder);
+	}
+	if (target.workspace) {
+		url.searchParams.set('workspace', target.workspace);
+	}
 	window.location.href = url.toString();
 }
 
@@ -86,6 +98,7 @@ async function boot() {
 
 	const urlParams = new URLSearchParams(window.location.search);
 	const folderParam = urlParams.get('folder');
+	const workspaceParam = urlParams.get('workspace');
 
 	let workspace: any = undefined;
 	if (folderParam) {
@@ -93,7 +106,18 @@ async function boot() {
 		if (parsed.scheme === 'file' || parsed.scheme === 'vscode-remote' || parsed.scheme === 'vscode-vfs') {
 			workspace = { folderUri: parsed };
 		}
+	} else if (workspaceParam) {
+		// Untitled workspaces (e.g. after "Add Folder to Workspace") live under vscode-userdata
+		const parsed = URI.parse(workspaceParam);
+		if (parsed.scheme === 'file' || parsed.scheme === 'vscode-userdata') {
+			workspace = { workspaceUri: parsed };
+		}
 	}
+
+	const openedParam = folderParam || workspaceParam;
+	const windowLabel = openedParam
+		? decodeURIComponent(openedParam.split('/').pop() || 'scmCode').replace(/\.code-workspace$/, '')
+		: 'scmCode';
 
 	const options: any = {
 		initialColorTheme: {
@@ -107,15 +131,22 @@ async function boot() {
 			workspace,
 			trusted: true,
 			open: async (_workspace: any, _options: any) => {
-				// When VSCode asks to open a new workspace, reload with the folder param
+				// When VSCode asks to open a new workspace, reload with the folder/workspace param.
+				// There is a single window, so "open in a new window" also reuses this one.
 				if (_workspace && 'folderUri' in _workspace) {
 					navigateToFolder(_workspace.folderUri.toString());
+				} else if (_workspace && 'workspaceUri' in _workspace) {
+					navigateTo({ workspace: _workspace.workspaceUri.toString() });
+				} else if (!_workspace && _options?.reuse) {
+					// Empty window in place (Close Folder / Close Workspace). A new empty
+					// window would need multi-window support, which is not wired yet.
+					navigateTo({});
 				}
 				return true;
 			}
 		},
 		windowIndicator: {
-			label: folderParam ? decodeURIComponent(folderParam.split('/').pop() || 'scmCode') : 'scmCode',
+			label: windowLabel,
 			tooltip: 'scmCode — Tauri Code Editor',
 			command: undefined
 		},
@@ -222,7 +253,8 @@ async function boot() {
 	updateNativeMenuLabels();
 
 	console.log(
-		'[scmCode] Workbench created' + (folderParam ? ` (folder: ${folderParam})` : ' (no folder)'),
+		'[scmCode] Workbench created' +
+			(folderParam ? ` (folder: ${folderParam})` : workspaceParam ? ` (workspace: ${workspaceParam})` : ' (no folder)'),
 		'workspace:',
 		workspace
 	);

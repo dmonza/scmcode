@@ -16,7 +16,7 @@
 
 ---
 
-## An MIT-licensed derivative of SideX
+## An MIT-licensed derivative of SideX (VS Code on Tauri with a Rust backend)
 
 **scmCode is a derivative work (fork) of [SideX](https://github.com/Sidenai/sidex),
 distributed under the MIT License, the same license as SideX.**
@@ -174,9 +174,13 @@ still be merged.
 
 scmCode has a built-in coding agent that needs no account of any kind. Every request goes from the editor to a server running on your own machine, and from there straight to whichever model provider you point it at.
 
+### Turning it on
+
+AI is off by default. While it's off there is no chat panel, no inline edit (`Ctrl+K` keeps its usual editor chords), no inline completions, and no agent server process. Turn it on in **scmCode Settings → General → AI Features** (from the profile button in the title bar), or set `"sidex.ai.enabled": true` in your user settings, then reload the window when prompted. Turning it off again stops the agent server.
+
 ### How it starts
 
-On launch, the app spawns its own agent server (`sidexai/sidex-server`, written in Go) as a child process bound to `127.0.0.1` on a random free port. It's supervised from [`src-tauri/src/server.rs`](./src-tauri/src/server.rs) and stopped when the app exits. If the server binary isn't built, the rest of the editor still works — the chat panel just reports itself as disconnected.
+While AI is on, the app spawns its own agent server (`sidexai/sidex-server`, written in Go) as a child process bound to `127.0.0.1` on a random free port. It's supervised from [`src-tauri/src/server.rs`](./src-tauri/src/server.rs) and stopped when the app exits. If the server binary isn't built, the rest of the editor still works — the chat panel just reports itself as disconnected.
 
 ### Bring your own model
 

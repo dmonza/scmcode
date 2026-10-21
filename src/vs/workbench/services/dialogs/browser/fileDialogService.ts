@@ -13,6 +13,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { AbstractFileDialogService } from './abstractFileDialogService.js';
 import { Schemas } from '../../../../base/common/network.js';
+import { WORKSPACE_FILTER } from '../../../../platform/workspace/common/workspace.js';
 
 /**
  * SideX file dialog service — always routes through the Tauri native dialog
@@ -41,8 +42,7 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 	}
 
 	async pickWorkspaceAndOpen(options: IPickAndOpenOptions): Promise<void> {
-		// Workspaces are not directly pickable in Tauri — fall back to folder open.
-		return this._tauriPickFolderAndOpen(options);
+		return this._tauriPickWorkspaceAndOpen(options);
 	}
 
 	async pickFileToSave(defaultUri: URI, availableFileSystems?: string[]): Promise<URI | undefined> {
@@ -70,6 +70,28 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 			}
 		} catch (e) {
 			console.error('[scmCode] Failed to open folder dialog:', e);
+		}
+	}
+
+	private async _tauriPickWorkspaceAndOpen(options: IPickAndOpenOptions): Promise<void> {
+		try {
+			const { open } = await import('@tauri-apps/plugin-dialog');
+			const selected = await open({
+				directory: false,
+				multiple: false,
+				title: 'Open Workspace from File',
+				defaultPath: options.defaultUri?.fsPath || undefined,
+				filters: WORKSPACE_FILTER
+			});
+			if (selected && typeof selected === 'string') {
+				const workspaceUri = URI.file(selected);
+				await this.hostService.openWindow([{ workspaceUri }], {
+					forceNewWindow: options.forceNewWindow,
+					remoteAuthority: options.remoteAuthority
+				});
+			}
+		} catch (e) {
+			console.error('[scmCode] Failed to open workspace dialog:', e);
 		}
 	}
 

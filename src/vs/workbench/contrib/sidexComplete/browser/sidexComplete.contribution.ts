@@ -7,6 +7,7 @@ import { ILanguageFeaturesService } from '../../../../editor/common/services/lan
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { SidexCompleteProvider } from './sidexCompleteProvider.js';
 import { resolveServerEndpoint, serverHttpUrl } from '../../sidexChat/browser/localServer.js';
+import { SIDEX_AI_ENABLED_SETTING } from '../../../browser/parts/sidex/sidexPart.js';
 
 class SidexCompleteContribution implements IWorkbenchContribution {
 	static readonly ID = 'sidex.complete';
@@ -15,6 +16,11 @@ class SidexCompleteContribution implements IWorkbenchContribution {
 		@ILanguageFeaturesService languageFeaturesService: ILanguageFeaturesService,
 		@IConfigurationService configurationService: IConfigurationService,
 	) {
+		// scmCode: AI is opt-in, and the setting applies on reload; with it off there is
+		// no agent server to complete against.
+		if (!configurationService.getValue<boolean>(SIDEX_AI_ENABLED_SETTING)) {
+			return;
+		}
 		// Defaults to the agent server the app runs locally; an explicit
 		// setting points completions somewhere else. Registration waits for
 		// the port to be known, but the URL is re-read per request so a server

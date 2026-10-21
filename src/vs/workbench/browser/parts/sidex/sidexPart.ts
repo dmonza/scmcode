@@ -37,6 +37,13 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { HoverPosition } from '../../../../base/browser/ui/hover/hoverWidget.js';
 import { Extensions } from '../../panecomposite.js';
 
+/**
+ * scmCode: user setting that turns the AI features on. Off by default: the panel stays
+ * hidden and the agent server is not spawned (`src-tauri/src/server.rs` reads
+ * the same key). Applied on reload.
+ */
+export const SIDEX_AI_ENABLED_SETTING = 'sidex.ai.enabled';
+
 export class SidexPart extends AbstractPaneCompositePart {
 	static readonly activeViewSettingsKey = 'workbench.sidex.activepanelid';
 	static readonly pinnedViewsKey = 'workbench.sidex.pinnedPanels';

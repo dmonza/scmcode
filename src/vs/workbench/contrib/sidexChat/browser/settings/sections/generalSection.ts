@@ -5,6 +5,7 @@
 
 import type { SettingsSection } from '../sidexSettingsPanel.js';
 import { createCustomDropdown } from '../sidexSettingsStyles.js';
+import { SIDEX_AI_ENABLED_SETTING } from '../../../../../browser/parts/sidex/sidexPart.js';
 
 type TauriInvoke = ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>) | null;
 
@@ -30,10 +31,12 @@ export class GeneralSection implements SettingsSection {
 	async render(container: HTMLElement): Promise<void> {
 		this._container = container;
 
+		let aiEnabled = false;
 		if (this._invoke) {
 			try {
 				const data = await this._invoke('settings_get', { section: 'sidex.general' }) as SettingsData | null;
 				if (data) { this._settings = data; }
+				aiEnabled = (await this._invoke('settings_get', { section: SIDEX_AI_ENABLED_SETTING })) === true;
 			} catch { /* use defaults */ }
 			await this._loadModelOptions();
 		}
@@ -41,6 +44,23 @@ export class GeneralSection implements SettingsSection {
 		this._createSectionTitle(container, 'General');
 
 		const card = this._createCard(container);
+
+		// 0. scmCode: AI on/off. Goes through the workbench command rather than
+		// `settings_update`, so the configuration service sees the change and
+		// offers the reload that applies it.
+		this._addToggleRow(
+			card,
+			'AI Features',
+			'Chat panel, inline edit, inline completions and the local agent server that runs them. Off by default; applies after a reload.',
+			SIDEX_AI_ENABLED_SETTING,
+			aiEnabled,
+			isOn => {
+				const commandService = (globalThis as { __sidex_commandService?: { executeCommand(id: string, ...args: unknown[]): Promise<unknown> } }).__sidex_commandService;
+				commandService?.executeCommand('sidex.ai.setEnabled', isOn).catch(() => {
+					/* surfaced by the workbench */
+				});
+			}
+		);
 
 		// 1. Default Model
 		this._addDefaultModelRow(card);
@@ -296,7 +316,14 @@ export class GeneralSection implements SettingsSection {
 		row.querySelector('.sidex-settings-row-action')!.appendChild(btn);
 	}
 
-	private _addToggleRow(parent: HTMLElement, label: string, description: string, settingKey: string, initialState: boolean): HTMLElement {
+	private _addToggleRow(
+		parent: HTMLElement,
+		label: string,
+		description: string,
+		settingKey: string,
+		initialState: boolean,
+		onChange: (isOn: boolean) => void = isOn => this._saveSetting(settingKey, isOn)
+	): HTMLElement {
 		const row = this._createRow(parent, label, description);
 		const toggle = document.createElement('div');
 		toggle.className = 'sidex-settings-toggle' + (initialState ? ' on' : '');
@@ -307,7 +334,7 @@ export class GeneralSection implements SettingsSection {
 		toggle.addEventListener('click', () => {
 			const isOn = toggle.classList.toggle('on');
 			toggle.setAttribute('aria-checked', String(isOn));
-			this._saveSetting(settingKey, isOn);
+			onChange(isOn);
 		});
 		row.querySelector('.sidex-settings-row-action')!.appendChild(toggle);
 		return row;
