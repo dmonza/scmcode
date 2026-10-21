@@ -273,6 +273,8 @@ async fn execute_command(
     }
     cmd.current_dir(cwd.unwrap_or(&ctx.cwd));
     inject_env_vars(&mut cmd, ctx);
+    #[cfg(windows)]
+    cmd.creation_flags(0x0800_0000); // scmCode: CREATE_NO_WINDOW
 
     match tokio::time::timeout(timeout, cmd.output()).await {
         Ok(Ok(output)) => {
@@ -337,6 +339,8 @@ async fn execute_script(
     cmd.arg(path);
     cmd.current_dir(&ctx.cwd);
     inject_env_vars(&mut cmd, ctx);
+    #[cfg(windows)]
+    cmd.creation_flags(0x0800_0000); // scmCode: CREATE_NO_WINDOW
 
     match tokio::time::timeout(timeout, cmd.output()).await {
         Ok(Ok(output)) => {

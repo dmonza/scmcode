@@ -1,3 +1,4 @@
+use super::no_console; // scmCode
 use super::{get_str, get_str_or, Args};
 use crate::ToolContext;
 use anyhow::{bail, Result};
@@ -54,7 +55,7 @@ fn generate_openai(prompt: &str, size: &str, style: &str, output_path: &str) -> 
         "response_format": "b64_json"
     });
 
-    let output = Command::new("curl")
+    let output = no_console(Command::new("curl"))
         .args([
             "-s",
             "--max-time",
@@ -109,7 +110,7 @@ fn generate_stability(prompt: &str, size: &str, output_path: &str) -> Result<()>
         "steps": 30,
     });
 
-    let output = Command::new("curl")
+    let output = no_console(Command::new("curl"))
         .args([
             "-s",
             "--max-time",
@@ -166,7 +167,7 @@ fn parse_size(size: &str) -> Result<(u32, u32)> {
 }
 
 fn base64_decode(input: &str) -> Result<Vec<u8>> {
-    let output = Command::new("base64")
+    let output = no_console(Command::new("base64"))
         .arg("-d")
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())

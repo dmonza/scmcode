@@ -1,3 +1,4 @@
+use super::no_console; // scmCode
 use super::{get_int, get_str, get_str_or, resolve_path, Args};
 use crate::ToolContext;
 use anyhow::{bail, Result};
@@ -18,7 +19,7 @@ pub fn run(args: &Args, ctx: &ToolContext) -> Result<String> {
         bail!("working_directory {work_dir:?} does not exist");
     }
 
-    let mut child = Command::new("sh")
+    let mut child = no_console(Command::new("sh"))
         .args(["-c", command])
         .current_dir(&work_dir)
         .stdout(Stdio::piped())

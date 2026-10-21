@@ -94,6 +94,9 @@ impl TaskRunner {
             command.env(k, v);
         }
 
+        #[cfg(windows)]
+        command.creation_flags(0x0800_0000); // scmCode: CREATE_NO_WINDOW
+
         let mut child = command
             .spawn()
             .with_context(|| format!("failed to spawn task '{}'", task.name))?;

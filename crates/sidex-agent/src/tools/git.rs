@@ -1,3 +1,4 @@
+use super::no_console; // scmCode
 use super::{get_int, get_str, resolve_path, Args};
 use crate::ToolContext;
 use anyhow::{bail, Result};
@@ -46,7 +47,10 @@ pub fn commit(args: &Args, ctx: &ToolContext) -> Result<String> {
 }
 
 fn git_cmd(cwd: &str, args: &[&str]) -> Result<String> {
-    let output = Command::new("git").args(args).current_dir(cwd).output()?;
+    let output = no_console(Command::new("git"))
+        .args(args)
+        .current_dir(cwd)
+        .output()?;
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);

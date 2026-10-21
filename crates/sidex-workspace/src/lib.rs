@@ -19,6 +19,8 @@ pub mod trust;
 pub mod watcher;
 pub mod workspace;
 
+mod console; // scmCode
+
 pub use dirty_diff::{
     compute_dirty_diff, get_original_content, DiffHunk as DirtyDiffHunk, DirtyDiffKind,
     DirtyDiffProvider, FileDirtyDiff,

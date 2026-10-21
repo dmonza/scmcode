@@ -1,3 +1,4 @@
+use super::no_console; // scmCode
 use super::{get_bool, get_int, get_str, get_str_or, resolve_path, Args};
 use crate::ToolContext;
 use anyhow::{bail, Result};
@@ -57,7 +58,7 @@ pub fn run(args: &Args, ctx: &ToolContext) -> Result<String> {
     rg_args.push(pattern.to_string());
     rg_args.push(search_path);
 
-    let output = Command::new("rg").args(&rg_args).output();
+    let output = no_console(Command::new("rg")).args(&rg_args).output();
 
     match output {
         Ok(o) => {

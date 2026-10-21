@@ -320,6 +320,15 @@ pub async fn multi_edit_file(
     })
 }
 
+/// scmCode: `rg` with no console window on Windows (the app has none to share).
+fn ripgrep() -> tokio::process::Command {
+    #[allow(unused_mut)]
+    let mut cmd = tokio::process::Command::new("rg");
+    #[cfg(windows)]
+    cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    cmd
+}
+
 #[tauri::command]
 pub async fn understand_symbol(
     symbol: String,
@@ -331,7 +340,7 @@ pub async fn understand_symbol(
     let include_callers = include_callers.unwrap_or(true);
 
     // Find definition using ripgrep
-    let def_output = tokio::process::Command::new("rg")
+    let def_output = ripgrep()
         .args(["--max-count=1", "--line-number", "--no-heading", "-e"])
         .arg(format!(
             r"(fn|function|class|struct|type|interface|def|const|let|var)\s+{}\b",
@@ -349,7 +358,7 @@ pub async fn understand_symbol(
     let mut callers = Vec::new();
     let mut references = 0;
     if include_callers {
-        let ref_output = tokio::process::Command::new("rg")
+        let ref_output = ripgrep()
             .args(["--max-count=20", "--line-number", "--no-heading", "-e"])
             .arg(format!(r"\b{}\b", symbol))
             .arg(&search_path)
@@ -477,7 +486,7 @@ pub async fn context_search(
     let keywords: Vec<&str> = query.split_whitespace().collect();
     let pattern = keywords.join("|");
 
-    let output = tokio::process::Command::new("rg")
+    let output = ripgrep()
         .args([
             "--line-number",
             "--no-heading",

@@ -374,6 +374,15 @@ fn spawn_and_confirm(
         .stdout(Stdio::null())
         .stderr(Stdio::piped());
 
+    // scmCode: without this, Windows gives the server a visible console for as
+    // long as it runs. Its own children (git, rg, shell tools) inherit the
+    // hidden console, so they don't flash one either.
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("failed to spawn {}: {e}", bin.display()))?;

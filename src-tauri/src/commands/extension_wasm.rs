@@ -222,6 +222,13 @@ impl LspServerProcess {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
+        // scmCode: hide the console window a GUI parent would otherwise open.
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        }
+
         let mut child = command
             .spawn()
             .map_err(|e| {

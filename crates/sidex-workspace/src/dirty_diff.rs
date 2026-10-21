@@ -11,6 +11,8 @@ use std::time::Instant;
 
 use serde::Serialize;
 
+use crate::console::no_console; // scmCode
+
 /// Classification of a single line change in the working tree.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum DirtyDiffKind {
@@ -159,7 +161,7 @@ pub fn get_original_content(path: &Path, repo_root: &Path) -> Result<String, Str
     let relative = path.strip_prefix(repo_root).unwrap_or(path);
     let relative_str = relative.to_string_lossy();
 
-    let output = Command::new("git")
+    let output = no_console(Command::new("git"))
         .args(["show", &format!("HEAD:{relative_str}")])
         .current_dir(repo_root)
         .output()

@@ -121,6 +121,14 @@ pub fn task_spawn(
         if let Some(ref a) = args {
             c.args(a);
         }
+
+        // scmCode: same as the shell branch above.
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            c.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        }
+
         c
     };
 

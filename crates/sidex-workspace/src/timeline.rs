@@ -11,6 +11,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::console::no_console; // scmCode
 use crate::error::{WorkspaceError, WorkspaceResult};
 
 // ---------------------------------------------------------------------------
@@ -124,7 +125,7 @@ impl Timeline {
 pub fn get_git_timeline(path: &Path, repo_root: &Path) -> WorkspaceResult<Vec<TimelineEntry>> {
     let rel_path = pathdiff::diff_paths(path, repo_root).unwrap_or_else(|| path.to_path_buf());
 
-    let output = Command::new("git")
+    let output = no_console(Command::new("git"))
         .args([
             "log",
             "--follow",
@@ -291,7 +292,7 @@ pub fn read_git_revision(
     let rel_path = pathdiff::diff_paths(path, repo_root).unwrap_or_else(|| path.to_path_buf());
     let spec = format!("{commit_hash}:{}", rel_path.to_string_lossy());
 
-    let output = Command::new("git")
+    let output = no_console(Command::new("git"))
         .args(["show", &spec])
         .current_dir(repo_root)
         .output()

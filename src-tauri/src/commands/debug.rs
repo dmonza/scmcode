@@ -87,6 +87,13 @@ pub fn debug_spawn_adapter(
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
 
+    // scmCode: hide the console window a GUI parent would otherwise open.
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    }
+
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("Failed to spawn debug adapter '{executable}': {e}"))?;

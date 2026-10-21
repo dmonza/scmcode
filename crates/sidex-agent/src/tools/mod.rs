@@ -15,6 +15,9 @@ pub mod tree;
 pub mod web;
 pub mod worktree;
 
+mod console; // scmCode
+use console::no_console;
+
 use crate::ToolContext;
 use anyhow::Result;
 use std::collections::HashMap;

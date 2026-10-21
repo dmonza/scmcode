@@ -1,3 +1,4 @@
+use super::no_console; // scmCode
 use super::{get_str, Args};
 use crate::ToolContext;
 use anyhow::{bail, Result};
@@ -12,7 +13,7 @@ pub fn search(args: &Args, _ctx: &ToolContext) -> Result<String> {
     let encoded = urlencoding::encode(&query);
     let url = format!("https://html.duckduckgo.com/html/?q={}", encoded);
 
-    let output = Command::new("curl")
+    let output = no_console(Command::new("curl"))
         .args(["-sL", "--max-time", "10", &url])
         .output()?;
 
@@ -50,7 +51,7 @@ pub fn fetch(args: &Args, _ctx: &ToolContext) -> Result<String> {
         bail!("URL must start with http:// or https://");
     }
 
-    let output = Command::new("curl")
+    let output = no_console(Command::new("curl"))
         .args([
             "-sL",
             "--max-time",
