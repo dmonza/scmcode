@@ -22,7 +22,7 @@ build/
 
 # ── Cargo.lock for library crates ───────────────────────────────────────────
 # Library lock files should not be committed (Cargo best practice).
-# The application lock (src-tauri/Cargo.lock) IS committed.
+# The app builds from the workspace lock (root Cargo.lock), which IS committed.
 sidex-extension-sdk/Cargo.lock
 extensions-rust/Cargo.lock
 examples/**/Cargo.lock
@@ -33,7 +33,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-logs/
+/logs/
 
 # ── OS files ─────────────────────────────────────────────────────────────────
 .DS_Store
@@ -68,17 +68,12 @@ coverage/
 .nyc_output/
 *.lcov
 
-# ── Local scratch / source reconstruction (never ship) ───────────────────────
+# ── Local scratch (never ship) ───────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 /scratchtmp/
-/recover_sources.py
-/recovered/
-/reconstruct/
-/reconstruct_sources.py
-/recover_*.py
 
 # ── Misc ─────────────────────────────────────────────────────────────────────
 *.tgz
@@ -118,13 +113,7 @@ public/builtin-extensions.js
 MEMORY.md
 .kilo/
 
-# Private — not part of the public app repo.
-# /sidex-web = marketing site + dashboard (Next.js)
-# /deploy    = maintainer deploy scripts and prod env
-/sidex-web/
-/website/
-/marketing/
-/sidex-site/
-/deploy/
-
 .claude/
+
+# Local portable toolchains (e.g. Zig as the CGO C compiler for sidex-server)
+.tools/

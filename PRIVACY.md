@@ -25,6 +25,7 @@ what triggers them. If you find one that is not listed here, please report it as
 | Update checks | The endpoint you configure | `plugins.updater.endpoints` in `tauri.conf.json` or `SIDEX_UPDATE_ENDPOINT`, plus `update.mode` in settings. Updates without a valid signature from your own `pubkey` are refused. |
 | Workspace extension recommendations | Extension registry | Set `extensions.ignoreRecommendations` to `false` |
 | Hosted semantic index / multi-user backend | Voyage, Cohere, Turbopuffer, Postgres | Only if `VOYAGE_API_KEY`, `COHERE_API_KEY`, `TURBOPUFFER_API_KEY` or `SIDEX_DATABASE_URL` is set |
+| Remote sandbox for agent commands | Daytona (`app.daytona.io`, or `DAYTONA_API_URL`): the commands the agent runs in the sandbox and the files it reads and writes there | Only if `DAYTONA_API_KEY` is set; without it the sandbox uses a local Docker container |
 
 Note: the agent server inherits the environment the app was launched from, so these
 variables also take effect if they are already exported in your shell.
@@ -67,6 +68,11 @@ Microsoft Edge WebView2 runtime, which can make background requests of its own. 
 starts every webview with arguments that turn off the runtime's background networking
 (remote configuration and experiments, component updates, domain reliability reporting
 and pings); see `WEBVIEW_BROWSER_ARGS` in `src-tauri/src/commands/window.rs`.
+
+The same arguments turn off **Microsoft Defender SmartScreen** in scmCode's webviews
+(`msSmartScreenProtection`), because SmartScreen sends the addresses the webview loads to
+Microsoft to check their reputation. This is a trade-off: pages and links opened inside
+scmCode's webviews are not checked against SmartScreen's list of malicious sites.
 
 In a test on a clean profile (Windows 11, WebView2 155), this removed the runtime's request
 to `config.edge.skype.com`. One connection from the WebView2 runtime to a Microsoft 365

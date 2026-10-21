@@ -23,7 +23,7 @@ npm install
 npm run tauri dev
 ```
 
-See the [README](./README.md) for full prerequisites. The editor runs standalone with no account of any kind; the AI chat panel additionally needs the agent server built (Go 1.26+) and a model provider of your own — see [AI Agent](./README.md#ai-agent) in the README.
+See [Prerequisites](./README.md#prerequisites) in the README. The editor runs standalone with no account of any kind; the AI chat panel additionally needs the agent server built (Go 1.26+) and a model provider of your own — see [AI Agent](./README.md#ai-agent) in the README.
 
 ## How to Contribute
 
@@ -35,6 +35,8 @@ See the [README](./README.md) for full prerequisites. The editor runs standalone
 ## What to Work On
 
 Check [Issues](https://github.com/dmonza/scmcode/issues) for open tasks. If you don't see an issue for what you want to fix, just open a PR.
+
+Found a security vulnerability? Don't open an issue or a PR for it; report it privately as described in [SECURITY.md](./SECURITY.md).
 
 ## Code Guidelines
 
@@ -59,6 +61,8 @@ scmCode name. Don't mass-rename internals.
 ### Go (`sidexai/sidex-server`)
 - This is the agent server: agent loop, tools, MCP, memory, context compression
 - Build with `go build -tags fts5 -o sidex-server ./cmd/server` from `sidexai/sidex-server`
+- Before a PR, run `gofmt -l .`, `go vet -tags fts5 ./...` and `go test -tags fts5 ./...` there (CI runs the same on Linux)
+- The server is reachable by anything on the machine: keep new endpoints behind `auth.LocalGuard` (wired in `cmd/server/main.go`) and accept JSON bodies only
 - It must keep working with no account and no hosted service — credentials come from its process environment only (`SIDEX_PROVIDER_<PROVIDER>_KEY` / `_BASE_URL`), never a config file. Never read other applications' credentials or impersonate other clients
 - Test against a provider you have your own credentials for; there's no shared or hosted backend to test against
 

@@ -1,0 +1,57 @@
+name: Agent server (Go)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/go.yml"
+      - "sidexai/sidex-server/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/go.yml"
+      - "sidexai/sidex-server/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: gofmt, vet, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sidexai/sidex-server
+    env:
+      # SQLite (FTS5) and tree-sitter need CGO.
+      CGO_ENABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: sidexai/sidex-server/go.mod
+          cache-dependency-path: sidexai/sidex-server/go.sum
+
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "Files not formatted with gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet -tags fts5 ./...
+
+      - name: go test
+        run: go test -tags fts5 ./...
+
+      - name: go build
+        run: go build -tags fts5 -o sidex-server ./cmd/server

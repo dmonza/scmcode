@@ -170,9 +170,14 @@ func main() {
 
 	listenAddr := bindAddr + ":" + port
 
+	// scmCode: reject requests a web page could get a browser to send here
+	// (foreign Origin, non-loopback Host via DNS rebinding, non-JSON bodies
+	// that skip the CORS preflight) before they reach CORS or any handler.
+	guard := auth.LocalGuard(api.AllowedOrigins, isLoopbackAddr(bindAddr))
+
 	log.Printf("scmCode home: %s", paths.SidexHome())
 	log.Printf("scmCode server listening on %s", listenAddr)
-	if err := http.ListenAndServe(listenAddr, cors(r)); err != nil {
+	if err := http.ListenAndServe(listenAddr, guard(cors(r))); err != nil {
 		log.Fatal(err)
 	}
 }

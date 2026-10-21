@@ -82,6 +82,8 @@ install.**
   any opt-in setting described in [PRIVACY.md](./PRIVACY.md) are your decisions.
 - **Keep backups.** Use version control and backups for anything you open in scmCode.
 
+To report a security vulnerability in scmCode, see [SECURITY.md](./SECURITY.md). Please don't open a public issue for it.
+
 ---
 
 ## Disclaimer and limitation of liability
@@ -200,6 +202,8 @@ The agent server executes shell commands and edits files on your behalf. Binding
 
 `SIDEX_BIND_ADDR` can widen that, but the server refuses to start on a non-loopback address unless you explicitly opt in with `SIDEX_ALLOW_UNAUTHENTICATED=1`. Don't set that unless you understand the exposure — an open port on this server means arbitrary code execution for whoever can reach it.
 
+Web pages you open in a browser can also send requests to `127.0.0.1`. The server rejects requests from any origin other than the scmCode webview, requests whose `Host` is not a loopback address (DNS rebinding), and request bodies that are not JSON, so a page cannot drive it or read your sessions. The server has no authentication of its own, though: other programs and other user accounts on the same machine can connect to it. Don't run scmCode's agent on a machine you share with people you don't trust.
+
 ### Building the agent server
 
 The agent server needs **Go 1.26 or later** and a C compiler (CGO, for SQLite and tree-sitter):
@@ -211,9 +215,21 @@ go build -tags fts5 -o sidex-server ./cmd/server
 
 The app looks for a binary at that path automatically when running from a source checkout. See [`sidexai/sidex-server/.env.example`](./sidexai/sidex-server/.env.example) if you'd rather run the server yourself.
 
+The release workflow does not build or bundle the agent server yet, so prebuilt installers contain the editor without the AI agent. To use the agent, build scmCode and the agent server from source.
+
 ---
 
 ## Getting Started
+
+### Prerequisites
+
+- **Node.js 20 or later** (CI uses Node 20 and 24).
+- **Rust 1.91 or later**, via [rustup](https://rustup.rs/).
+- **The Tauri 2 system dependencies** for your OS (see Tauri's [prerequisites guide](https://v2.tauri.app/start/prerequisites/)):
+  - **Windows:** Microsoft C++ Build Tools ("Desktop development with C++") and the WebView2 runtime (preinstalled on Windows 10 and 11). `aws-lc-sys` would normally need [NASM](https://www.nasm.us/); `.cargo/config.toml` sets `AWS_LC_SYS_PREBUILT_NASM=1` so it uses the prebuilt objects bundled in the crate instead.
+  - **macOS:** Xcode Command Line Tools (`xcode-select --install`).
+  - **Linux (Debian/Ubuntu):** `sudo apt install build-essential libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev`.
+- **For the AI agent only:** Go 1.26 or later and a C compiler for CGO (on Windows, for example, MinGW-w64 `gcc`). The editor runs without them. See [Building the agent server](#building-the-agent-server).
 
 ### Run in Development
 
@@ -232,8 +248,6 @@ npx tauri build
 ```
 
 `npx tauri build` runs the frontend build for you (`npm run build`), which raises Vite's Node heap limit internally. If you still hit an out-of-memory error, set `NODE_OPTIONS="--max-old-space-size=16384"`.
-
-On Windows, the Rust build needs [NASM](https://www.nasm.us/) for `aws-lc-sys`, or set `AWS_LC_SYS_PREBUILT_NASM=1` to use its prebuilt objects.
 
 ### Shipping your own updates (optional)
 

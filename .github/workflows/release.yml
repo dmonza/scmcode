@@ -52,6 +52,13 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
 
+    # Code signing is optional: each signing step runs only when its secrets
+    # exist, so a fork or a fresh repo without certificates still produces
+    # (unsigned) builds instead of failing the whole release.
+    env:
+      HAS_APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE != '' }}
+      HAS_AZURE_SIGNING: ${{ secrets.AZURE_CLIENT_ID != '' }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -82,7 +89,7 @@ jobs:
         run: npm ci
 
       - name: Import Apple signing certificate
-        if: runner.os == 'macOS' && !contains(matrix.platform, 'self-hosted')
+        if: runner.os == 'macOS' && env.HAS_APPLE_CERT == 'true' && !contains(matrix.platform, 'self-hosted')
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -114,20 +121,33 @@ jobs:
         run: npm run build
 
       - name: Unlock keychain before signing
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && env.HAS_APPLE_CERT == 'true'
         env:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
 
       - name: Build Tauri app
         timeout-minutes: 40
+        shell: bash
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: npx tauri build --target ${{ matrix.target }} --config src-tauri/tauri.release.conf.json
+        run: |
+          # A missing secret arrives as an empty variable. Unset those so the
+          # build does not try to notarize or sign with blank credentials.
+          for v in APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then unset "$v"; fi
+          done
+          # Updater artifacts (.sig files) need the updater signing key, so
+          # they are only produced when that secret is configured.
+          extra=()
+          if [ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            extra=(--config src-tauri/tauri.release.conf.json)
+          fi
+          npx tauri build --target ${{ matrix.target }} "${extra[@]}"
 
       - name: Collect macOS artifacts
         if: runner.os == 'macOS'
@@ -148,6 +168,7 @@ jobs:
           mkdir -p dist-artifacts
           find target \( \
             -name "*-setup.exe" \
+            -o -name "*.msi" \
             -o -name "*.exe.zip" \
             -o -name "*.exe.zip.sig" \
           \) -exec cp {} dist-artifacts/ \; 2>/dev/null || true
@@ -160,7 +181,7 @@ jobs:
           mkdir -p dist-artifacts
           find target \( \
             -name "*.deb" \
-            -name "*.rpm" \
+            -o -name "*.rpm" \
             -o -name "*.AppImage" \
             -o -name "*.AppImage.tar.gz" \
             -o -name "*.AppImage.tar.gz.sig" \
@@ -168,7 +189,7 @@ jobs:
           ls -la dist-artifacts/
 
       - name: Sign Windows installers (Azure Trusted Signing)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.HAS_AZURE_SIGNING == 'true'
         uses: Azure/artifact-signing-action@v1.1.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -210,8 +231,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ github.event.inputs.version || github.ref_name }}"
-          name: "scmCode v${{ github.event.inputs.version || github.ref_name }}"
+          # A tag push already carries the "v" (v0.1.3); a manual run passes
+          # the bare version (0.1.3). Prefixing both gave "vv0.1.3".
+          tag_name: ${{ github.event.inputs.version && format('v{0}', github.event.inputs.version) || github.ref_name }}
+          name: scmCode ${{ github.event.inputs.version && format('v{0}', github.event.inputs.version) || github.ref_name }}
           draft: true
           generate_release_notes: true
           files: all-artifacts/**

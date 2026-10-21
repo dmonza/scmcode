@@ -29,7 +29,12 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
     watch: {
-      ignored: ['**/src-tauri/**'],
+      // Rust and Go build output lives outside src-tauri: src-tauri is a Cargo
+      // workspace member, so target/ is at the repo root, and the agent server
+      // binary is rebuilt under sidexai/. Watching files that are being written
+      // fails on Windows with EBUSY and kills the dev server.
+      // .tools/ holds local portable toolchains (thousands of files).
+      ignored: ['**/src-tauri/**', '**/target/**', '**/crates/**', '**/sidexai/**', '**/.tools/**'],
     },
   },
   envPrefix: ['VITE_', 'TAURI_'],

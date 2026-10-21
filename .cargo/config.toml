@@ -1,0 +1,6 @@
+# aws-lc-sys (pulled in by rustls) needs NASM to build on Windows x86_64.
+# Use the prebuilt NASM objects that ship inside the crate instead, so a
+# Windows checkout builds without installing NASM. No effect on other targets.
+# An AWS_LC_SYS_PREBUILT_NASM value already set in the environment wins.
+[env]
+AWS_LC_SYS_PREBUILT_NASM = "1"

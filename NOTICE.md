@@ -19,6 +19,17 @@ headers must not be removed. New scmCode files may carry their own notice.
 Third-party packages (npm, Cargo and Go dependencies, bundled grammars, fonts and icons)
 keep their own licenses, as declared in their respective package metadata.
 
+### Third-party files kept in this repository
+
+These files are committed outside the dependency folders and ship with the app, so their
+licenses are listed here:
+
+| File | Origin | License |
+|---|---|---|
+| `public/codicon.ttf` | Codicons icon font, [`@vscode/codicons`](https://github.com/microsoft/vscode-codicons), Copyright (c) Microsoft Corporation | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| `public/onig.wasm` | [`vscode-oniguruma`](https://github.com/microsoft/vscode-oniguruma), Copyright (c) Microsoft Corporation, which compiles [Oniguruma](https://github.com/kkos/oniguruma), Copyright (c) K.Kosako | MIT (vscode-oniguruma), BSD 2-Clause (Oniguruma) |
+| `public/webview-pre/` | Webview host pages from Code - OSS, Copyright (c) Microsoft Corporation | MIT |
+
 ## No warranty, no liability
 
 scmCode, like SideX and Code - OSS, is provided **"AS IS", without warranty of any kind**,

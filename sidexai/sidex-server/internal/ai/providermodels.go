@@ -12,9 +12,9 @@ import (
 
 // RemoteModel is one entry a provider advertised on its /models endpoint.
 type RemoteModel struct {
-	ID             string
-	Name           string
-	ContextWindow  int
+	ID            string
+	Name          string
+	ContextWindow int
 }
 
 // ConfiguredLocalProviders returns every provider the desktop app handed us
@@ -108,23 +108,23 @@ func applyListHeaders(req *http.Request, cfg ProviderConfig) {
 func parseProviderModelList(provider string, raw json.RawMessage) ([]RemoteModel, error) {
 	var envelope struct {
 		Data []struct {
-			ID              string `json:"id"`
-			DisplayName     string `json:"display_name"`
-			Name            string `json:"name"`
-			ContextWindow   int    `json:"context_window"`
-			ContextLength   int    `json:"context_length"`
-			MaxInputTokens  int    `json:"max_input_tokens"`
-			MaxContext      int    `json:"max_context_length"`
+			ID             string `json:"id"`
+			DisplayName    string `json:"display_name"`
+			Name           string `json:"name"`
+			ContextWindow  int    `json:"context_window"`
+			ContextLength  int    `json:"context_length"`
+			MaxInputTokens int    `json:"max_input_tokens"`
+			MaxContext     int    `json:"max_context_length"`
 		} `json:"data"`
 		Models []struct {
-			Slug            string `json:"slug"`
-			ID              string `json:"id"`
-			Name            string `json:"name"`
-			DisplayName     string `json:"display_name"`
-			ContextWindow   int    `json:"context_window"`
-			ContextLength   int    `json:"context_length"`
-			MaxInputTokens  int    `json:"max_input_tokens"`
-			MaxContext      int    `json:"max_context_length"`
+			Slug           string `json:"slug"`
+			ID             string `json:"id"`
+			Name           string `json:"name"`
+			DisplayName    string `json:"display_name"`
+			ContextWindow  int    `json:"context_window"`
+			ContextLength  int    `json:"context_length"`
+			MaxInputTokens int    `json:"max_input_tokens"`
+			MaxContext     int    `json:"max_context_length"`
 		} `json:"models"`
 	}
 	if err := json.Unmarshal(raw, &envelope); err != nil {
