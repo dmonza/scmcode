@@ -1,6 +1,6 @@
 [package]
 name = "sidex-settings"
-description = "Settings/configuration management for SideX"
+description = "Settings/configuration management for scmCode"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

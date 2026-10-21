@@ -1,6 +1,6 @@
 [package]
 name = "sidex-db"
-description = "SQLite state persistence for SideX"
+description = "SQLite state persistence for scmCode"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

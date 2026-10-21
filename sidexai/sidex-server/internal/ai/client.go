@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -76,17 +77,16 @@ type Client struct {
 	apiKey  string
 	baseURL string
 	model   string
-	// authMode selects the header scheme for providers that need one; only
-	// Anthropic distinguishes (api_key vs an existing CLI login).
-	authMode string
 	// provider is the resolved provider id. Recorded explicitly because
 	// WithProviderConfig strips the prefix from the model id, so it can no
 	// longer be recovered from the model string alone.
-	provider string
-	// accountID is the ChatGPT account UUID for a Codex OAuth login.
-	accountID  string
+	provider   string
 	httpClient *http.Client
 }
+
+// ErrNoProvider is returned when a request is made through a client that has
+// no endpoint configured (no provider selected and no OPENROUTER_BASE_URL).
+var ErrNoProvider = errors.New("no model provider is configured. Add a provider in Settings → Models")
 
 // NewClient builds the default OpenRouter-backed client. OpenRouter is just
 // one of many providers a session can select (see WithProviderConfig), so an
@@ -101,10 +101,10 @@ func NewClient() *Client {
 		model = "anthropic/claude-sonnet-4.6"
 	}
 
+	// scmCode: no implicit OpenRouter fallback. Without an explicit
+	// OPENROUTER_BASE_URL this client has no endpoint, and requests made
+	// through it fail with ErrNoProvider instead of leaving the machine.
 	baseURL := os.Getenv("OPENROUTER_BASE_URL")
-	if baseURL == "" {
-		baseURL = "https://openrouter.ai/api/v1"
-	}
 
 	return &Client{
 		apiKey:  apiKey,
@@ -128,9 +128,7 @@ func (c *Client) WithModel(model string) *Client {
 	return &Client{
 		apiKey:     c.apiKey,
 		baseURL:    c.baseURL,
-		authMode:   c.authMode,
 		provider:   c.provider,
-		accountID:  c.accountID,
 		model:      model,
 		httpClient: c.httpClient,
 	}
@@ -147,9 +145,7 @@ func (c *Client) WithProviderConfig(cfg ProviderConfig) *Client {
 	return &Client{
 		apiKey:     cfg.APIKey,
 		baseURL:    strings.TrimRight(cfg.BaseURL, "/"),
-		authMode:   cfg.AuthMode,
 		provider:   cfg.Provider,
-		accountID:  cfg.AccountID,
 		model:      model,
 		httpClient: c.httpClient,
 	}
@@ -190,12 +186,6 @@ type StreamOptions struct {
 	// MaxTokensOverride forces a specific max_tokens (clamped to the model's
 	// ceiling). Used by error recovery to escalate after truncated output.
 	MaxTokensOverride int
-	// SessionID is the stable conversation id. For an Anthropic CLI login it is
-	// sent as the X-Claude-Code-Session-Id header so the account is attributed
-	// to a consistent, resolvable session — the first-party Claude Code client
-	// sends it on every /v1/messages request and omitting it is one of the
-	// signals that distinguishes a third-party client.
-	SessionID string
 }
 
 func (c *Client) StreamChat(messages []Message, tools []ToolDef, systemPrompt string, onChunk func(StreamChunk)) error {
@@ -204,17 +194,17 @@ func (c *Client) StreamChat(messages []Message, tools []ToolDef, systemPrompt st
 
 // StreamChatWithOptions streams a chat completion via OpenRouter (OpenAI-compatible SSE).
 func (c *Client) StreamChatWithOptions(messages []Message, tools []ToolDef, systemPrompt string, opts *StreamOptions, onChunk func(StreamChunk)) error {
+	if c.baseURL == "" {
+		return ErrNoProvider
+	}
 	// Anthropic's own API is not OpenAI-shaped; it needs the Messages API.
 	if c.provider == "" {
 		if p := ProviderFromModelID(c.model); p == "anthropic" || p == "openai" || p == "google" {
-			return fmt.Errorf("%s is not connected. Connect that account or add an API key in Settings → Models — SideX will not send this to OpenRouter.", p)
+			return fmt.Errorf("%s is not configured. Add an API key in Settings → Models — scmCode will not send this to OpenRouter.", p)
 		}
 	}
 	if IsAnthropicNative(c.provider) && c.apiKey != "" {
 		return c.streamAnthropic(messages, tools, systemPrompt, opts, onChunk)
-	}
-	if isOpenAICodex(c) {
-		return c.streamCodex(messages, tools, systemPrompt, opts, onChunk)
 	}
 
 	// Bedrock serves the same Anthropic models but over AWS's own
@@ -287,8 +277,8 @@ func (c *Client) StreamChatWithOptions(messages []Message, tools []ToolDef, syst
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-	req.Header.Set("HTTP-Referer", "https://github.com/Sidenai/sidex")
-	req.Header.Set("X-Title", "SideX")
+	// scmCode: no HTTP-Referer / X-Title app-attribution headers, so the
+	// provider is not told which client sent the request.
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

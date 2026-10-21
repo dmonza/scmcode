@@ -1,13 +1,13 @@
-# SideX Architecture
+# scmCode Architecture
 
-A technical reference for how SideX maps to VSCode's architecture.
+A technical reference for how scmCode maps to VSCode's architecture.
 
 The VSCode source (MIT License) is the architectural reference. No proprietary code is used.
 
 ## Process Model
 
 ```
-VSCode (Electron)                    SideX (Tauri)
+VSCode (Electron)                    scmCode (Tauri)
 ─────────────────                    ─────────────
 Electron Main Process        →       Tauri Rust Backend
   ├─ BrowserWindow           →       WebviewWindow
@@ -152,12 +152,12 @@ is the source of truth for the full, current list.
 | **debug** | `debug_spawn_adapter`, `debug_send`, `debug_kill`, `debug_list_adapters` |
 | **tasks** | `task_spawn`, `task_kill`, `task_list` |
 | **server** | `server_endpoint`, `server_restart` |
-| **providers** | `providers_catalog`, `providers_status`, `providers_save`, `providers_delete`, `providers_set_cli_auth`, `providers_set_enabled`, `providers_detect_cli`, `providers_detect_local`, `providers_list_models`, `accounts_list`, `accounts_connect`, `accounts_disconnect` |
+| **providers** | `providers_catalog`, `providers_status`, `providers_save`, `providers_delete`, `providers_set_enabled`, `providers_detect_local`, `providers_list_models` |
 | **auth** | `auth_get_session`, `auth_get_usage` — all local-only; see [Agent Server](#agent-server) |
 
 ## Agent Server
 
-SideX has no account system and no hosted backend. The AI agent runs against
+scmCode has no account system and no hosted backend. The AI agent runs against
 a second process, `sidexai/sidex-server` (Go), that the Tauri backend spawns
 as a child on launch and stops on exit (`src-tauri/src/server.rs`):
 
@@ -171,18 +171,13 @@ as a child on launch and stops on exit (`src-tauri/src/server.rs`):
   plan/credit metering (`internal/plan.Metered`) since the user is paying
   their provider directly.
 - Provider credentials are resolved by `src-tauri/src/commands/providers.rs`
-  — a key from Settings, then an environment variable, then an opt-in
-  Claude Code / Codex CLI login, then a keyless local model server — and
-  passed to the child through its process environment as
-  `SIDEX_PROVIDER_<PROVIDER>_KEY` / `_BASE_URL` / `_AUTH`. Credentials are
-  never written to a config file and never sent to the webview.
-- A connected Claude Code login does not currently give working Claude
-  access: Anthropic authenticates the token but has been observed to decline
-  the request with a contentless `429` (no `retry-after`, no
-  `anthropic-ratelimit-*` headers) because the credential is issued for the
-  Claude Code CLI and Anthropic does not appear to accept it from other
-  clients. See `subscriptionAuthHint` in `internal/ai/anthropic.go`. An
-  Anthropic API key, OpenRouter, or a local model works reliably instead.
+  — a key from Settings, then an environment variable, then a keyless local
+  model server — and passed to the child through its process environment as
+  `SIDEX_PROVIDER_<PROVIDER>_KEY` / `_BASE_URL`. API keys entered in Settings
+  are kept in the OS keyring (or a local fallback store), not in the agent
+  server's configuration, and are not sent to the webview.
+- scmCode removed SideX's reuse of Claude Code / Codex CLI logins: it does not
+  read other applications' credentials or present itself as another client.
 - The workbench talks to it over HTTP/WebSocket on loopback; `server_endpoint`
   reports the resolved `ws://`/`http://` URLs, `server_restart` restarts it
   after credentials change.

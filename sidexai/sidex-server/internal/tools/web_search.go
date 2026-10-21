@@ -46,7 +46,7 @@ func (r *Registry) webSearch(args map[string]interface{}) ExecutionResult {
 	if err != nil {
 		return ExecutionResult{Error: "failed to build request: " + err.Error()}
 	}
-	req.Header.Set("User-Agent", "Sidex/1.0")
+	req.Header.Set("User-Agent", "scmCode/1.0")
 
 	resp, err := client.Do(req)
 	if err != nil {

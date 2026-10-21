@@ -1,18 +1,22 @@
-# Sidex AI
+# scmCode AI agent server
 
-Local agent server used by the SideX desktop app (`sidexai/sidex-server`). Go process on loopback: tools, MCP, memory, and provider calls.
+Local agent server used by the scmCode desktop app (`sidexai/sidex-server`). Go process on loopback: tools, MCP, memory, and provider calls. The directory and binary keep their upstream SideX names (`sidexai`, `sidex-server`, `sidex`) so changes can still be merged from upstream.
 
 The desktop app builds and supervises this server. You only need this README if you are running the server by hand.
 
-## Architecture
+> **Warning.** This server executes shell commands and edits files on your machine on behalf
+> of an AI model. AI output can be wrong or destructive. Run it only on loopback, review
+> what it does, and keep backups. It is provided "AS IS", without warranty of any kind and
+> without liability, under the [MIT License](../LICENSE); see the
+> [Disclaimer](../README.md#disclaimer-and-limitation-of-liability).
 
 ## Architecture
 
 ```
 ┌─────────────────┐         WebSocket          ┌──────────────────────┐
-│   sidex (Rust)   │ ◄──────────────────────► │   sidex-server (Go)   │
+│  client (Rust)   │ ◄──────────────────────► │   sidex-server (Go)   │
 │                  │                           │                       │
-│  • Interactive   │                           │  • Anthropic API      │
+│  • Interactive   │                           │  • Model providers    │
 │  • Syntax HL     │                           │  • Context Compress   │
 │  • Tool Display  │                           │  • Memory (BoltDB)    │
 │  • Streaming     │                           │  • Tool Execution     │
@@ -50,28 +54,20 @@ The desktop app builds and supervises this server. You only need this README if 
 
 ### Prerequisites
 
-- Go 1.26+
+- Go 1.26+ and a C compiler (CGO, for SQLite and tree-sitter)
 - Rust 1.75+ (CLI only)
 - `rg` (ripgrep) installed and on PATH
-- A model provider: API key, Claude Code / Codex login, or a local server — **Bedrock is optional**, not required
+- A model provider of your own: an API key or a local server. There is no default provider.
 
 ### Server
 
 ```bash
 cd sidex-server
-go mod tidy
-
-# Set your AWS credentials (Bedrock access required)
-export AWS_ACCESS_KEY_ID="..."
-export AWS_SECRET_ACCESS_KEY="..."
-export AWS_REGION="us-east-1"
-# If using temporary credentials:
-# export AWS_SESSION_TOKEN="..."
-
-go run cmd/server/main.go
+go build -tags fts5 -o sidex-server ./cmd/server
+./sidex-server
 ```
 
-Server starts on port 7433 by default. Override with `SIDEX_PORT`.
+Server starts on `127.0.0.1:7433` by default. Override the port with `SIDEX_PORT`. Provider credentials and all other options are described in [`sidex-server/.env.example`](./sidex-server/.env.example).
 
 ### CLI
 
@@ -86,13 +82,12 @@ Binary lands at `target/release/sidex.exe` (Windows) or `target/release/sidex` (
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `AWS_ACCESS_KEY_ID` | — | AWS access key |
-| `AWS_SECRET_ACCESS_KEY` | — | AWS secret key |
-| `AWS_REGION` | `us-east-1` | AWS region for Bedrock |
-| `AWS_SESSION_TOKEN` | — | Optional session token for temp creds |
 | `SIDEX_PORT` | `7433` | Server port |
 | `SIDEX_SERVER` | `ws://localhost:7433` | Server URL (CLI) |
-| `SIDEX_MODEL` | `us.anthropic.claude-opus-4-6-v1` | Bedrock model ID |
+| `SIDEX_MODEL` | — | Default model ID |
+| `SIDEX_PROVIDER_<PROVIDER>_KEY` / `_BASE_URL` | — | Provider credentials |
+
+See [`sidex-server/.env.example`](./sidex-server/.env.example) for the full list.
 
 ## Usage
 
@@ -135,22 +130,17 @@ sidex --server ws://myserver:7433
 sidex-server/
 ├── cmd/server/main.go        # Entry point
 ├── internal/
-│   ├── ai/client.go          # Anthropic streaming client + compression
-│   ├── api/handler.go         # HTTP/WebSocket API handlers
-│   ├── compress/compress.go   # Context compression engine
-│   ├── memory/store.go        # BoltDB persistence layer
-│   ├── session/session.go     # Session management
-│   └── tools/
-│       ├── tools.go           # Tool execution engine
-│       └── registry.go        # Tool definitions
+│   ├── ai/                   # Provider clients + compression
+│   ├── api/handler.go        # HTTP/WebSocket API handlers
+│   ├── compress/             # Context compression engine
+│   ├── memory/               # BoltDB persistence layer
+│   ├── session/              # Session management
+│   └── tools/                # Tool execution engine and definitions
 └── go.mod
 
 sidex-cli/
 ├── src/
-│   ├── main.rs               # CLI entry + arg parsing
-│   ├── ui.rs                  # Interactive terminal UI
-│   ├── client.rs              # WebSocket/HTTP client
-│   ├── config.rs              # Configuration
-│   └── highlight.rs           # Syntax highlighting
+│   ├── main.rs               # CLI entry, arg parsing, client and terminal UI
+│   └── config.rs             # Configuration
 └── Cargo.toml
 ```

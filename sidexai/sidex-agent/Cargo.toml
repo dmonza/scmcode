@@ -4,8 +4,8 @@ version = "0.2.0"
 edition = "2021"
 rust-version = "1.91.0"
 license = "MIT"
-repository = "https://github.com/sidenai/sidex"
-description = "AI coding agent tool executor for Sidex"
+repository = "https://github.com/dmonza/scmcode"
+description = "AI coding agent tool executor for scmCode"
 
 [workspace]
 

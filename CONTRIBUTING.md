@@ -1,12 +1,24 @@
-# Contributing to SideX
+# Contributing to scmCode
 
-Thanks for your interest. SideX was released early specifically so the community can help build it out.
+Thanks for your interest. scmCode is an MIT-licensed derivative of
+[SideX](https://github.com/Sidenai/sidex). Contributions are welcome as long as they
+respect the project's two pillars (see the [README](./README.md#pillars)):
+
+1. **Minimalism.** Prefer removing code over adding it. New features should be optional
+   and should not pull in hosted services.
+2. **Privacy.** No telemetry, analytics, crash reporting, remote feature flags,
+   or "phone home" requests. Any new outbound network call must be triggered by an
+   explicit user action (or an explicit, opt-in setting), must be documented in
+   [PRIVACY.md](./PRIVACY.md), and must go to a service the user chose.
+
+Never remove the Microsoft or Siden Technologies copyright headers from files that carry
+them: the MIT License requires that they be preserved.
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/Sidenai/sidex.git
-cd sidex
+git clone https://github.com/dmonza/scmcode.git
+cd scmcode
 npm install
 npm run tauri dev
 ```
@@ -20,13 +32,18 @@ See the [README](./README.md) for full prerequisites. The editor runs standalone
 3. **Make your changes** and test with `npm run tauri dev`
 4. **Submit a PR** with a clear description of what you changed and why
 
-PRs get reviewed as fast as we can. If your change gets merged, you'll be added as a contributor.
-
 ## What to Work On
 
-Check [Issues](https://github.com/Sidenai/sidex/issues) for open tasks. If you don't see an issue for what you want to fix, just open a PR — we're not strict about process.
+Check [Issues](https://github.com/dmonza/scmcode/issues) for open tasks. If you don't see an issue for what you want to fix, just open a PR.
 
 ## Code Guidelines
+
+### Internal names
+
+Internal identifiers (crate names `sidex-*`, `SideX*` classes, `sidexChat`, `SIDEX_*`
+environment variables, the `sidexai/` directory) intentionally keep the upstream
+names so that changes from SideX can still be merged. Only user-visible text uses the
+scmCode name. Don't mass-rename internals.
 
 ### TypeScript
 - Follow the existing VSCode patterns in the codebase
@@ -42,7 +59,7 @@ Check [Issues](https://github.com/Sidenai/sidex/issues) for open tasks. If you d
 ### Go (`sidexai/sidex-server`)
 - This is the agent server: agent loop, tools, MCP, memory, context compression
 - Build with `go build -tags fts5 -o sidex-server ./cmd/server` from `sidexai/sidex-server`
-- It must keep working with no account and no hosted service — credentials come from its process environment only (`SIDEX_PROVIDER_<PROVIDER>_KEY` / `_BASE_URL` / `_AUTH`), never a config file
+- It must keep working with no account and no hosted service — credentials come from its process environment only (`SIDEX_PROVIDER_<PROVIDER>_KEY` / `_BASE_URL`), never a config file. Never read other applications' credentials or impersonate other clients
 - Test against a provider you have your own credentials for; there's no shared or hosted backend to test against
 
 ### General
@@ -57,12 +74,12 @@ Check [Issues](https://github.com/Sidenai/sidex/issues) for open tasks. If you d
 - `crates/` — Rust support crates: agent tools, context engine, git, LSP, DAP, terminal, extensions, and more
 - `ARCHITECTURE.md` — How VSCode's architecture maps to Tauri
 
-## Questions?
-
-Join the Discord if you need help getting set up or want to coordinate: [discord.gg/8CUCnEAC4J](https://discord.gg/8CUCnEAC4J)
-
-You can also reach out at kendall@siden.ai or [@ImRazshy](https://x.com/ImRazshy) on X.
-
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that:
+
+- your contributions are licensed under the [MIT License](./LICENSE);
+- you have the right to submit them (they are your own work, or you are allowed to
+  contribute them under the MIT License) and they do not include code you may not license;
+- your contributions are provided "AS IS", without warranty of any kind, and the project
+  maintainers accept no liability for them, as described in the LICENSE.

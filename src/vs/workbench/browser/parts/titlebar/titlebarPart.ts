@@ -799,8 +799,8 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 						SidexSettingsPanel.getInstance().toggle();
 					}).catch(() => { /* panel is optional */ });
 				};
-				actions.push(toAction({ id: 'sidex.profile.settings', label: 'SideX Settings', run: openSidexSettings }));
-				actions.push(toAction({ id: 'sidex.profile.usage', label: 'SideX Usage', run: openSidexSettings }));
+				actions.push(toAction({ id: 'sidex.profile.settings', label: 'scmCode Settings', run: openSidexSettings }));
+				actions.push(toAction({ id: 'sidex.profile.usage', label: 'scmCode Usage', run: openSidexSettings }));
 
 				actions.push(new Separator());
 
@@ -817,9 +817,8 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 
 				// Group 3: Help / Info
 				actions.push(toAction({ id: 'sidex.manage.updates', label: 'Check for Updates...', run: () => this.updateService.checkForUpdates(true) }));
-				// docs.sidex.dev does not resolve; the README is the actual docs entry point until a docs site exists.
-				actions.push(toAction({ id: 'sidex.manage.docs', label: 'Docs', run: () => this.commandService.executeCommand('vscode.open', URI.parse('https://github.com/Sidenai/sidex#readme')) }));
-				actions.push(toAction({ id: 'sidex.manage.community', label: 'Join the Community', run: () => this.commandService.executeCommand('vscode.open', URI.parse('https://discord.gg/8CUCnEAC4J')) }));
+				// The README is the docs entry point until a docs site exists.
+				actions.push(toAction({ id: 'sidex.manage.docs', label: 'Docs', run: () => this.commandService.executeCommand('vscode.open', URI.parse('https://github.com/dmonza/scmcode#readme')) }));
 
 				this.contextMenuService.showContextMenu({
 					getAnchor: () => profileButton,
@@ -986,7 +985,7 @@ export class BrowserTitlebarPart extends Part implements ITitlebarPart {
 			if (!this.projectNameElement) { return; }
 			const workspace = this.workspaceContextService.getWorkspace();
 			const name = this.labelService.getWorkspaceLabel(workspace);
-			this.projectNameElement.textContent = name || 'SideX';
+			this.projectNameElement.textContent = name || 'scmCode';
 		} catch { /* ignore during workspace transitions */ }
 	}
 

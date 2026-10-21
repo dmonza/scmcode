@@ -63,22 +63,22 @@ else {
 	if (Object.keys(product).length === 0) {
 		Object.assign(product, {
 			version: '1.110.0',
-			nameShort: 'SideX',
-			nameLong: 'SideX',
-			applicationName: 'sidex',
-			dataFolderName: '.sidex',
-			urlProtocol: 'sidex',
-			reportIssueUrl: 'https://github.com/Sidenai/sidex/issues/new',
+			nameShort: 'scmCode',
+			nameLong: 'scmCode',
+			applicationName: 'scmcode',
+			dataFolderName: '.scmcode',
+			urlProtocol: 'scmcode',
+			reportIssueUrl: 'https://github.com/dmonza/scmcode/issues/new',
 			licenseName: 'MIT',
-			licenseUrl: 'https://github.com/Sidenai/sidex/blob/main/LICENSE',
-			serverLicenseUrl: 'https://github.com/Sidenai/sidex/blob/main/LICENSE',
+			licenseUrl: 'https://github.com/dmonza/scmcode/blob/main/LICENSE',
+			serverLicenseUrl: 'https://github.com/dmonza/scmcode/blob/main/LICENSE',
 			extensionsGallery: {
-				serviceUrl: 'https://marketplace.siden.ai/api/gallery',
-				controlUrl: 'https://az764295.vo.msecnd.net/extensions/marketplace.json',
-				extensionUrlTemplate:
-					'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/{publisher}/vsextensions/{name}/{version}/vspackage',
-				resourceUrlTemplate: 'https://{publisher}.vscode-unpkg.net/{publisher}/{name}/{version}/{path}',
-				nlsBaseUrl: 'https://az764295.vo.msecnd.net/extensions/{publisher}/{name}/{version}/{lang}.json'
+				serviceUrl: 'https://open-vsx.org/vscode/gallery',
+				itemUrl: 'https://open-vsx.org/vscode/item',
+				resourceUrlTemplate: 'https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/{path}',
+				controlUrl: '',
+				nlsBaseUrl: 'https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/extension',
+				publisherUrl: ''
 			}
 		});
 	}

@@ -265,7 +265,7 @@ pub fn setup_zsh_dotdir(scripts_dir: &Path, data_dir: &Path) -> Result<PathBuf, 
     let scripts = scripts_dir.to_string_lossy();
 
     let zshrc = format!(
-        "# SideX Shell Integration - Auto-generated\n\
+        "# scmCode Shell Integration - Auto-generated\n\
          VSCODE_SHELL_INTEGRATION=1\n\
          VSCODE_INJECTION=1\n\
          if [[ -f \"{scripts}/shellIntegration-rc.zsh\" ]]; then\n\
@@ -277,7 +277,7 @@ pub fn setup_zsh_dotdir(scripts_dir: &Path, data_dir: &Path) -> Result<PathBuf, 
         .map_err(|e| format!("failed to write .zshrc: {e}"))?;
 
     let zshenv = format!(
-        "# SideX Shell Integration - Auto-generated\n\
+        "# scmCode Shell Integration - Auto-generated\n\
          USER_ZDOTDIR=\"${{ZDOTDIR:-$HOME}}\"\n\
          if [[ -f \"{scripts}/shellIntegration-env.zsh\" ]]; then\n\
          \x20   . \"{scripts}/shellIntegration-env.zsh\"\n\
@@ -287,7 +287,7 @@ pub fn setup_zsh_dotdir(scripts_dir: &Path, data_dir: &Path) -> Result<PathBuf, 
         .map_err(|e| format!("failed to write .zshenv: {e}"))?;
 
     let zprofile = format!(
-        "# SideX Shell Integration - Auto-generated\n\
+        "# scmCode Shell Integration - Auto-generated\n\
          if [[ -f \"{scripts}/shellIntegration-profile.zsh\" ]]; then\n\
          \x20   . \"{scripts}/shellIntegration-profile.zsh\"\n\
          fi\n"
@@ -296,7 +296,7 @@ pub fn setup_zsh_dotdir(scripts_dir: &Path, data_dir: &Path) -> Result<PathBuf, 
         .map_err(|e| format!("failed to write .zprofile: {e}"))?;
 
     let zlogin = format!(
-        "# SideX Shell Integration - Auto-generated\n\
+        "# scmCode Shell Integration - Auto-generated\n\
          if [[ -f \"{scripts}/shellIntegration-login.zsh\" ]]; then\n\
          \x20   . \"{scripts}/shellIntegration-login.zsh\"\n\
          fi\n"

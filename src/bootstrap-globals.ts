@@ -9,11 +9,11 @@
 (globalThis as any)._VSCODE_NLS_LANGUAGE = 'en';
 
 (globalThis as any)._VSCODE_PRODUCT_JSON = {
-	nameShort: 'SideX',
-	nameLong: 'SideX',
-	applicationName: 'sidex',
-	dataFolderName: '.sidex',
-	urlProtocol: 'sidex',
+	nameShort: 'scmCode',
+	nameLong: 'scmCode',
+	applicationName: 'scmcode',
+	dataFolderName: '.scmcode',
+	urlProtocol: 'scmcode',
 	version: '1.96.0',
 	commit: '',
 	date: new Date().toISOString(),

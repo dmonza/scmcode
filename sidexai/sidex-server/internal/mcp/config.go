@@ -53,7 +53,7 @@ type Config struct {
 // LoadConfig reads the MCP configuration from the workspace's .sidex/mcp.json.
 // Returns nil (no error) if the file does not exist.
 func LoadConfig(workspaceDir string) (*Config, error) {
-	configPath := filepath.Join(workspaceDir, ".sidex", "mcp.json")
+	configPath := filepath.Join(workspaceDir, ".scmcode", "mcp.json")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {

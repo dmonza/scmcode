@@ -30,7 +30,7 @@ function getInvoke(): ((cmd: string, args?: Record<string, unknown>) => Promise<
 export async function invoke<T = any>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
 	const fn = getInvoke();
 	if (!fn) {
-		console.warn(`[SideX] invoke(${cmd}) — Tauri not available`);
+		console.warn(`[scmCode] invoke(${cmd}) — Tauri not available`);
 		return null as unknown as T;
 	}
 	return fn(cmd, args) as Promise<T>;

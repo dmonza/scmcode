@@ -1,6 +1,6 @@
 [package]
 name = "sidex-keymap"
-description = "Keybinding system for SideX"
+description = "Keybinding system for scmCode"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

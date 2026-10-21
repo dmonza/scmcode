@@ -1,6 +1,6 @@
 [package]
 name = "sidex-workspace"
-description = "Workspace management — file tree, watcher, search for SideX"
+description = "Workspace management — file tree, watcher, search for scmCode"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

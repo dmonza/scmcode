@@ -116,7 +116,7 @@ export class SidexUpdateService implements IUpdateService {
 			if (isState(result)) {
 				this.setState(result);
 				if (explicit && result.type === StateType.Disabled) {
-					this.notificationService.info('SideX updates are not configured for this build.');
+					this.notificationService.info('scmCode updates are not configured for this build.');
 				}
 			}
 		} catch (err) {

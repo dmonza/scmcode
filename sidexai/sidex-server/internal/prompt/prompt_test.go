@@ -29,7 +29,7 @@ func TestBuildIncludesAllCoreSections(t *testing.T) {
 		"<output_efficiency>",
 		"<environment>",
 		"<session_guidance>",
-		"SideX",
+		"scmCode",
 		"/home/alice/proj",
 	}
 	for _, s := range required {

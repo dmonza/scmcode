@@ -358,7 +358,7 @@ func (h *Handler) GetPlan(w http.ResponseWriter, r *http.Request) {
 // ListModels advertises only the models the user can actually reach.
 //
 // When a provider is configured, the list comes from that provider's own
-// /models endpoint (Claude Code, Codex, Ollama, …) — not a hardcoded
+// /models endpoint (Anthropic, OpenAI, Ollama, …) — not a hardcoded
 // snapshot in pricing.go. The static catalog is only a fallback when
 // nothing is configured or a live fetch fails.
 func (h *Handler) ListModels(w http.ResponseWriter, r *http.Request) {
@@ -791,9 +791,9 @@ func (h *Handler) runAgentLoopWithAgents(sc *safeConn, sess *session.Session, ct
 	hooks.Register(agent.HookBeforeTurn, "exploration_nudge", agent.ExplorationNudgeHook, 90)
 	hooks.Register(agent.HookBeforeTurn, "verify_after_edit", agent.VerifyAfterEditHook, 80)
 	hooks.Register(agent.HookBeforeToolUse, "security_gate", agent.SecurityGateHook, 100)
-	// Load user-defined hooks from <workspace>/.sidex/hooks.json (no-op if absent).
+	// Load user-defined hooks from <workspace>/.scmcode/hooks.json (no-op if absent).
 	if sess.CWD != "" {
-		if err := hooks.LoadFromConfig(filepath.Join(sess.CWD, ".sidex", "hooks.json")); err != nil {
+		if err := hooks.LoadFromConfig(filepath.Join(sess.CWD, ".scmcode", "hooks.json")); err != nil {
 			log.Printf("hooks: failed to load workspace config: %v", err)
 		}
 	}
@@ -963,7 +963,6 @@ func (h *Handler) runAgentLoopWithAgents(sc *safeConn, sess *session.Session, ct
 		hadToolCalls := false
 
 		streamOpts := &ai.StreamOptions{
-			SessionID:      sess.ID,
 			ThinkingBudget: cfg.ThinkingBudget,
 			Effort:         cfg.Effort,
 		}

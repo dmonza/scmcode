@@ -537,7 +537,7 @@ class MoveSidePanelToPanelAction extends MoveViewsBetweenPanelsAction {
 	constructor() {
 		super(ViewContainerLocation.AuxiliaryBar, ViewContainerLocation.Panel, {
 			id: MoveSidePanelToPanelAction.ID,
-			title: localize2('moveSidePanelToPanel', 'Move Sidex Views To Panel'),
+			title: localize2('moveSidePanelToPanel', 'Move scmCode Views To Panel'),
 			category: Categories.View,
 			f1: false
 		});
@@ -550,7 +550,7 @@ export class MoveSecondarySideBarToPanelAction extends MoveViewsBetweenPanelsAct
 	constructor() {
 		super(ViewContainerLocation.AuxiliaryBar, ViewContainerLocation.Panel, {
 			id: MoveSecondarySideBarToPanelAction.ID,
-			title: localize2('moveSidePanelToPanel', 'Move Sidex Views To Panel'),
+			title: localize2('moveSidePanelToPanel', 'Move scmCode Views To Panel'),
 			category: Categories.View,
 			f1: true
 		});

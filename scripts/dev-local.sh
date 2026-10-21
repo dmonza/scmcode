@@ -17,7 +17,7 @@ cleanup() {
 }
 trap cleanup INT TERM
 
-echo "=== SideX Local Development ==="
+echo "=== scmCode Local Development ==="
 echo ""
 
 # 1. Start Go Server

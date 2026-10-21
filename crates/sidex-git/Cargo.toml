@@ -1,6 +1,6 @@
 [package]
 name = "sidex-git"
-description = "Git integration for SideX"
+description = "Git integration for scmCode"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

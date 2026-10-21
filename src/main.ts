@@ -14,7 +14,7 @@ async function sidexOpenFolder() {
 			navigateToFolder(URI.file(selected).toString());
 		}
 	} catch (e) {
-		console.error('[SideX] Failed to open folder picker:', e);
+		console.error('[scmCode] Failed to open folder picker:', e);
 	}
 }
 (window as any).__sidex_openFolder = sidexOpenFolder;
@@ -31,19 +31,19 @@ async function boot() {
 
 	await Promise.all([
 		import('./vs/workbench/workbench.common.main.js').catch(e => {
-			console.error('[SideX] Barrel "common" failed:', e);
+			console.error('[scmCode] Barrel "common" failed:', e);
 			throw e;
 		}),
 		import('./vs/workbench/browser/web.main.js').catch(e => {
-			console.error('[SideX] Barrel "web.main" failed:', e);
+			console.error('[scmCode] Barrel "web.main" failed:', e);
 			throw e;
 		}),
 		import('./vs/workbench/browser/parts/dialogs/dialog.web.contribution.js').catch(e => {
-			console.error('[SideX] Barrel "web-dialog" failed:', e);
+			console.error('[scmCode] Barrel "web-dialog" failed:', e);
 			throw e;
 		}),
 		import('./vs/workbench/workbench.web.main.js').catch(e => {
-			console.error('[SideX] Barrel "web-services" failed:', e);
+			console.error('[scmCode] Barrel "web-services" failed:', e);
 			throw e;
 		})
 	]);
@@ -74,7 +74,7 @@ async function boot() {
 			fileSystem: new SideXFileSystemProvider()
 		};
 
-		console.log('[SideX] Rust bridge services initialized');
+		console.log('[scmCode] Rust bridge services initialized');
 	}
 
 	const { create } = await import('./vs/workbench/browser/web.factory.js');
@@ -115,15 +115,15 @@ async function boot() {
 			}
 		},
 		windowIndicator: {
-			label: folderParam ? decodeURIComponent(folderParam.split('/').pop() || 'SideX') : 'SideX',
-			tooltip: 'SideX — Tauri Code Editor',
+			label: folderParam ? decodeURIComponent(folderParam.split('/').pop() || 'scmCode') : 'scmCode',
+			tooltip: 'scmCode — Tauri Code Editor',
 			command: undefined
 		},
 		productConfiguration: {
-			nameShort: 'SideX',
-			nameLong: 'SideX',
-			applicationName: 'sidex',
-			dataFolderName: '.sidex',
+			nameShort: 'scmCode',
+			nameLong: 'scmCode',
+			applicationName: 'scmcode',
+			dataFolderName: '.scmcode',
 			version: '1.110.0',
 			linkProtectionTrustedDomains: ['https://github.com', 'https://*.github.com', 'https://*.githubusercontent.com']
 		},
@@ -150,6 +150,8 @@ async function boot() {
 			'update.showReleaseNotes': false,
 			'extensions.autoUpdate': false,
 			'extensions.autoCheckUpdates': false,
+			// scmCode: don't query the gallery for a workspace's recommended extensions on open.
+			'extensions.ignoreRecommendations': true,
 			'extensions.autoRestart': true,
 			'workbench.settings.enableNaturalLanguageSearch': false,
 			'chat.editor.enabled': false,
@@ -220,7 +222,7 @@ async function boot() {
 	updateNativeMenuLabels();
 
 	console.log(
-		'[SideX] Workbench created' + (folderParam ? ` (folder: ${folderParam})` : ' (no folder)'),
+		'[scmCode] Workbench created' + (folderParam ? ` (folder: ${folderParam})` : ' (no folder)'),
 		'workspace:',
 		workspace
 	);
@@ -314,7 +316,7 @@ function setupWindowsEditorNewlineKeybindings() {
 
 		const commandId = event.shiftKey ? 'editor.action.insertLineBefore' : 'editor.action.insertLineAfter';
 		commandService.executeCommand(commandId).catch(error => {
-			console.error(`[SideX] Failed to execute ${commandId}:`, error);
+			console.error(`[scmCode] Failed to execute ${commandId}:`, error);
 		});
 	});
 }
@@ -402,14 +404,14 @@ function setupMenuActions() {
 
 		const commandId = menuToCommand[menuId];
 		if (!commandId) {
-			console.warn(`[SideX] Unknown menu action: ${menuId}`);
+			console.warn(`[scmCode] Unknown menu action: ${menuId}`);
 			return;
 		}
 		try {
 			const event = new CustomEvent('sidex-command', { detail: { commandId } });
 			window.dispatchEvent(event);
 		} catch (e) {
-			console.error(`[SideX] Failed to execute menu command ${commandId}:`, e);
+			console.error(`[scmCode] Failed to execute menu command ${commandId}:`, e);
 		}
 	};
 
@@ -439,10 +441,10 @@ function setupMenuActions() {
 			if (commandService) {
 				await commandService.executeCommand(commandId);
 			} else {
-				console.warn(`[SideX] Command service not ready, queuing: ${commandId}`);
+				console.warn(`[scmCode] Command service not ready, queuing: ${commandId}`);
 			}
 		} catch (err) {
-			console.error(`[SideX] Command ${commandId} failed:`, err);
+			console.error(`[scmCode] Command ${commandId} failed:`, err);
 		}
 	});
 }
@@ -545,16 +547,16 @@ async function updateNativeMenuLabels() {
 		const { invoke } = await import('@tauri-apps/api/core');
 		await invoke('update_menu_labels', { labels });
 	} catch (e) {
-		console.warn('[SideX] Could not update native menu labels:', e);
+		console.warn('[scmCode] Could not update native menu labels:', e);
 	}
 }
 
 boot().catch(err => {
-	console.error('[SideX] Fatal:', err);
+	console.error('[scmCode] Fatal:', err);
 	const container = document.createElement('div');
 	container.style.cssText = 'padding:40px;color:#ccc;font-family:system-ui';
 	const h2 = document.createElement('h2');
-	h2.textContent = 'SideX failed to start';
+	h2.textContent = 'scmCode failed to start';
 	const pre = document.createElement('pre');
 	pre.style.cssText = 'color:#f88;white-space:pre-wrap';
 	pre.textContent = (err as Error)?.stack || String(err);

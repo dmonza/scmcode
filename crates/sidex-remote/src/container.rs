@@ -304,12 +304,12 @@ pub async fn install_server_in_container(container_id: &str) -> Result<()> {
     .await?;
 
     if check.stdout.trim() == version {
-        log::info!("SideX Server already up-to-date in container {container_id}");
+        log::info!("scmCode Server already up-to-date in container {container_id}");
         return Ok(());
     }
 
     exec_in_container(&docker, container_id, "mkdir -p ~/.sidex-server", "root").await?;
-    log::info!("installing SideX Server {version} in container {container_id}");
+    log::info!("installing scmCode Server {version} in container {container_id}");
     Ok(())
 }
 

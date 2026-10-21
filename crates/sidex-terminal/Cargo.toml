@@ -1,6 +1,6 @@
 [package]
 name = "sidex-terminal"
-description = "Terminal emulator and PTY management for SideX"
+description = "Terminal emulator and PTY management for scmCode"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -19,7 +19,7 @@ pub fn generate(args: &Args, ctx: &ToolContext) -> Result<String> {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_millis();
-        format!(".sidex/generated/{ts}.png")
+        format!(".scmcode/generated/{ts}.png")
     } else {
         output_path_raw.to_string()
     };

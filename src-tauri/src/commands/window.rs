@@ -4,6 +4,16 @@ use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use super::storage::StorageDb;
 
+/// scmCode: extra WebView2 (Windows) browser arguments for every webview the
+/// app creates. They stop the runtime's own background traffic (remote
+/// config/experiments, component updates, domain reliability, pings) so the
+/// webview makes no outbound request on its own. wry's defaults are repeated
+/// because setting this replaces them. WebView2 requires every webview sharing
+/// a data directory to use the same arguments, so this must match
+/// `app.windows[0].additionalBrowserArgs` in `tauri.conf.json`.
+pub const WEBVIEW_BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection \
+     --disable-background-networking --disable-component-update --disable-domain-reliability --no-pings";
+
 #[derive(Debug, Serialize)]
 pub struct MonitorInfo {
     pub name: Option<String>,
@@ -29,7 +39,8 @@ pub fn create_window(
 
     let builder = WebviewWindowBuilder::new(&app, &label, webview_url)
         .title(&title)
-        .inner_size(1200.0, 800.0);
+        .inner_size(1200.0, 800.0)
+        .additional_browser_args(WEBVIEW_BROWSER_ARGS);
 
     #[cfg(target_os = "macos")]
     let builder = builder
@@ -167,4 +178,19 @@ pub fn save_window_state(
     let json = serde_json::to_string(&state).map_err(|e| e.to_string())?;
     db.set(WINDOW_STATE_KEY, &json)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::WEBVIEW_BROWSER_ARGS;
+
+    #[test]
+    fn browser_args_match_main_window_config() {
+        let conf: serde_json::Value =
+            serde_json::from_str(include_str!("../../tauri.conf.json")).unwrap();
+        let main_args = conf["app"]["windows"][0]["additionalBrowserArgs"]
+            .as_str()
+            .unwrap();
+        assert_eq!(main_args, WEBVIEW_BROWSER_ARGS);
+    }
 }

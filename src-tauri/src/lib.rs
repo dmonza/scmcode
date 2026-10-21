@@ -339,8 +339,8 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         .separator()
         .build()?;
 
-    let sidex_menu = SubmenuBuilder::with_id(app, "sidex_menu", "SideX")
-        .item(&PredefinedMenuItem::about(app, Some("About SideX"), None)?)
+    let sidex_menu = SubmenuBuilder::with_id(app, "sidex_menu", "scmCode")
+        .item(&PredefinedMenuItem::about(app, Some("About scmCode"), None)?)
         .separator()
         .item(&PredefinedMenuItem::services(app, None)?)
         .separator()
@@ -693,14 +693,9 @@ pub fn run() {
             commands::providers_status,
             commands::providers_save,
             commands::providers_delete,
-            commands::providers_set_cli_auth,
             commands::providers_set_enabled,
-            commands::providers_detect_cli,
             commands::providers_detect_local,
             commands::providers_list_models,
-            commands::accounts_list,
-            commands::accounts_connect,
-            commands::accounts_disconnect,
             commands::auth_get_session,
             commands::auth_get_usage,
             // File system

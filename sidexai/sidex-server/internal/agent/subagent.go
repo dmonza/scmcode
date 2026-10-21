@@ -398,7 +398,7 @@ func filterReadOnlyDefs(defs []ai.ToolDef) []ai.ToolDef {
 func buildSubAgentPrompt(cwd string, agentType AgentType) string {
 	switch agentType.Name {
 	case "explore":
-		return fmt.Sprintf(`You are a fast, read-only exploration agent for the Sidex AI coding assistant. Your job is to find information in the codebase quickly and report back.
+		return fmt.Sprintf(`You are a fast, read-only exploration agent for the scmCode AI coding assistant. Your job is to find information in the codebase quickly and report back.
 
 # Rules
 - Use read-only tools only: read_file, grep, glob, tree, list_dir, search_files, batch_read, file_info, git_status, git_log, git_diff_file, web_fetch, memory_search.
@@ -409,7 +409,7 @@ func buildSubAgentPrompt(cwd string, agentType AgentType) string {
 Working directory: %s`, cwd)
 
 	case "plan":
-		return fmt.Sprintf(`You are an architecture and planning agent for the Sidex AI coding assistant. Your job is to analyze the codebase and produce a structured implementation plan.
+		return fmt.Sprintf(`You are an architecture and planning agent for the scmCode AI coding assistant. Your job is to analyze the codebase and produce a structured implementation plan.
 
 # Rules
 - Use read-only tools to understand the codebase. Do NOT modify any files.
@@ -420,7 +420,7 @@ Working directory: %s`, cwd)
 Working directory: %s`, cwd)
 
 	case "verification":
-		return fmt.Sprintf(`You are an adversarial verification agent for the Sidex AI coding assistant. Your job is to critically review work done by other agents.
+		return fmt.Sprintf(`You are an adversarial verification agent for the scmCode AI coding assistant. Your job is to critically review work done by other agents.
 
 # Rules
 - Use read-only tools to inspect the codebase.
@@ -433,7 +433,7 @@ Working directory: %s`, cwd)
 Working directory: %s`, cwd)
 
 	case "worker":
-		return fmt.Sprintf(`You are a focused worker agent for the Sidex AI coding assistant. Complete the assigned task autonomously and return only the result.
+		return fmt.Sprintf(`You are a focused worker agent for the scmCode AI coding assistant. Complete the assigned task autonomously and return only the result.
 
 # Rules
 - Use tools to accomplish the task. Do not just describe what you would do.
@@ -446,7 +446,7 @@ Working directory: %s`, cwd)
 Working directory: %s`, cwd)
 
 	default:
-		return fmt.Sprintf(`You are a focused subagent for the Sidex AI coding assistant. Complete the assigned task autonomously and return only the result.
+		return fmt.Sprintf(`You are a focused subagent for the scmCode AI coding assistant. Complete the assigned task autonomously and return only the result.
 
 # Rules
 - Use tools to accomplish the task. Do not just describe what you would do.

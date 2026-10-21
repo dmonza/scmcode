@@ -74,7 +74,7 @@ export class ToggleAuxiliaryBarAction extends Action2 {
 				icon: closeIcon,
 				mnemonicTitle: localize(
 					{ key: 'miCloseSecondarySideBar', comment: ['&& denotes a mnemonic'] },
-					'&&Sidex'
+					'&&scmCode'
 				)
 			},
 			icon: closeIcon,

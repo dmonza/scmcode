@@ -1,6 +1,6 @@
 [package]
 name = "sidex-theme"
-description = "Theme parsing and color management for SideX"
+description = "Theme parsing and color management for scmCode"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

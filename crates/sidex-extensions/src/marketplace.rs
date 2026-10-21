@@ -13,15 +13,12 @@ use std::time::Instant;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-/// Default marketplace base URL. Points at the `SideX` Cloudflare
-/// Worker, which merges Microsoft Marketplace + Open VSX and exposes
-/// them under an Open-VSX-compatible `/api/-/search` endpoint so this
-/// client can keep using its existing JSON schema.
+/// Default marketplace base URL: the Open VSX registry, queried directly
+/// with no intermediate proxy.
 ///
 /// Override via `MarketplaceClient::with_base_url` (e.g. tests, or
-/// users who want to point at a self-hosted proxy or at
-/// `https://open-vsx.org/api` directly).
-const DEFAULT_BASE_URL: &str = "https://marketplace.siden.ai/api";
+/// users who want to point at a self-hosted Open VSX instance).
+const DEFAULT_BASE_URL: &str = "https://open-vsx.org/api";
 const DEFAULT_PAGE_SIZE: u32 = 20;
 const CACHE_TTL_SECS: u64 = 300;
 
@@ -35,15 +32,10 @@ const CACHE_TTL_SECS: u64 = 300;
 ///
 /// Keep-alive is intentionally aggressive so a user who does
 /// `search → click extension → install` reuses the same TCP + TLS
-/// session for all three requests. With the Worker on Cloudflare, the
-/// RTT from a warm connection to cache hit is a single HTTP/2 frame.
+/// session for all three requests.
 fn build_http_client() -> reqwest::Client {
     reqwest::Client::builder()
-        .user_agent(concat!(
-            "SideX/",
-            env!("CARGO_PKG_VERSION"),
-            " (+https://github.com/sidenai/sidex)"
-        ))
+        .user_agent(concat!("scmCode/", env!("CARGO_PKG_VERSION")))
         .tcp_keepalive(Some(std::time::Duration::from_mins(1)))
         .http2_keep_alive_interval(Some(std::time::Duration::from_secs(30)))
         .http2_keep_alive_timeout(std::time::Duration::from_secs(10))

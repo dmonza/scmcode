@@ -87,7 +87,7 @@ func environmentSection(in Input) string {
 		)
 	} else {
 		lines = append(lines,
-			"You are running inside the SideX IDE and talking to the user over a websocket.",
+			"You are running inside the scmCode IDE and talking to the user over a websocket.",
 		)
 	}
 

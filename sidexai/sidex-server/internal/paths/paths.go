@@ -27,47 +27,47 @@ func SidexHome() string {
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return filepath.Join(os.TempDir(), ".sidex")
+		return filepath.Join(os.TempDir(), ".scmcode")
 	}
-	return filepath.Join(home, ".sidex")
+	return filepath.Join(home, ".scmcode")
 }
 
-// GlobalConfig returns the path to the global config file (~/.sidex/config.json).
+// GlobalConfig returns the path to the global config file (~/.scmcode/config.json).
 func GlobalConfig() string {
 	return filepath.Join(SidexHome(), "config.json")
 }
 
-// GlobalMCP returns the path to the global MCP server definitions (~/.sidex/mcp.json).
+// GlobalMCP returns the path to the global MCP server definitions (~/.scmcode/mcp.json).
 func GlobalMCP() string {
 	return filepath.Join(SidexHome(), "mcp.json")
 }
 
-// GlobalSkillsDir returns the path to user-global skills (~/.sidex/skills/).
+// GlobalSkillsDir returns the path to user-global skills (~/.scmcode/skills/).
 func GlobalSkillsDir() string {
 	return filepath.Join(SidexHome(), "skills")
 }
 
-// GlobalRulesDir returns the path to user-global rules (~/.sidex/rules/).
+// GlobalRulesDir returns the path to user-global rules (~/.scmcode/rules/).
 func GlobalRulesDir() string {
 	return filepath.Join(SidexHome(), "rules")
 }
 
-// GlobalAgentsDir returns the path to user-global custom subagents (~/.sidex/agents/).
+// GlobalAgentsDir returns the path to user-global custom subagents (~/.scmcode/agents/).
 func GlobalAgentsDir() string {
 	return filepath.Join(SidexHome(), "agents")
 }
 
-// PlansDir returns the path to agent plan files (~/.sidex/plans/).
+// PlansDir returns the path to agent plan files (~/.scmcode/plans/).
 func PlansDir() string {
 	return filepath.Join(SidexHome(), "plans")
 }
 
-// StateDB returns the path to the global BoltDB state file (~/.sidex/state.db).
+// StateDB returns the path to the global BoltDB state file (~/.scmcode/state.db).
 func StateDB() string {
 	return filepath.Join(SidexHome(), "state.db")
 }
 
-// ProjectsDir returns the root projects directory (~/.sidex/projects/).
+// ProjectsDir returns the root projects directory (~/.scmcode/projects/).
 func ProjectsDir() string {
 	return filepath.Join(SidexHome(), "projects")
 }
@@ -139,15 +139,15 @@ func ProjectMCPDir(workspacePath string) string {
 	return filepath.Join(ProjectDir(workspacePath), "mcps")
 }
 
-// InRepoRulesDir returns the in-repo rules directory (<project>/.sidex/rules/).
+// InRepoRulesDir returns the in-repo rules directory (<project>/.scmcode/rules/).
 // This is the ONLY state we write inside the user's git repo.
 func InRepoRulesDir(workspacePath string) string {
-	return filepath.Join(workspacePath, ".sidex", "rules")
+	return filepath.Join(workspacePath, ".scmcode", "rules")
 }
 
-// InRepoSkillsDir returns the in-repo skills directory (<project>/.sidex/skills/).
+// InRepoSkillsDir returns the in-repo skills directory (<project>/.scmcode/skills/).
 func InRepoSkillsDir(workspacePath string) string {
-	return filepath.Join(workspacePath, ".sidex", "skills")
+	return filepath.Join(workspacePath, ".scmcode", "skills")
 }
 
 // EnsureProjectDirs creates all the per-project subdirectories if they don't exist.

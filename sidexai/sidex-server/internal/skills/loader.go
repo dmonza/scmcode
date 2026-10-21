@@ -21,8 +21,8 @@ type Skill struct {
 
 // LoadAllSkills returns skills from all sources, in priority order:
 //  1. Bundled (always available, lowest priority)
-//  2. User-global (~/.sidex/skills/)
-//  3. Project-local (<project>/.sidex/skills/) — highest priority, can override
+//  2. User-global (~/.scmcode/skills/)
+//  3. Project-local (<project>/.scmcode/skills/) — highest priority, can override
 func LoadAllSkills(projectDir string) []Skill {
 	seen := make(map[string]struct{})
 	var out []Skill
@@ -54,7 +54,7 @@ func LoadAllSkills(projectDir string) []Skill {
 	return out
 }
 
-// LoadSkills reads skill files from <projectDir>/.sidex/skills/ only (legacy API).
+// LoadSkills reads skill files from <projectDir>/.scmcode/skills/ only (legacy API).
 func LoadSkills(projectDir string) []Skill {
 	return loadFromDir(paths.InRepoSkillsDir(projectDir), "project")
 }

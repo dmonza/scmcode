@@ -10,7 +10,7 @@ import (
 )
 
 // LoadRulesPrompt reads all custom workspace rules from project-local (.sidex/rules/)
-// and user-global (~/.sidex/rules/) directories, plus the root-level .sidexrules file,
+// and user-global (~/.scmcode/rules/) directories, plus the root-level .sidexrules file,
 // and compiles them into a unified section inside the system prompt.
 func LoadRulesPrompt(workspacePath string) string {
 	var rules []string
@@ -48,10 +48,10 @@ func LoadRulesPrompt(workspacePath string) string {
 		}
 	}
 
-	// 2. Load user-global rules (~/.sidex/rules/)
+	// 2. Load user-global rules (~/.scmcode/rules/)
 	loadFromDir(paths.GlobalRulesDir())
 
-	// 3. Load project-local rules (<project>/.sidex/rules/)
+	// 3. Load project-local rules (<project>/.scmcode/rules/)
 	loadFromDir(paths.InRepoRulesDir(workspacePath))
 
 	if len(rules) == 0 {

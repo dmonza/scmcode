@@ -219,7 +219,7 @@ func TestClientWithPipes(t *testing.T) {
 
 func TestLoadConfig(t *testing.T) {
 	dir := t.TempDir()
-	sidexDir := filepath.Join(dir, ".sidex")
+	sidexDir := filepath.Join(dir, ".scmcode")
 	os.MkdirAll(sidexDir, 0o755)
 
 	configJSON := `{
@@ -275,7 +275,7 @@ func TestLoadConfigMissing(t *testing.T) {
 
 func TestLoadConfigInvalid(t *testing.T) {
 	dir := t.TempDir()
-	sidexDir := filepath.Join(dir, ".sidex")
+	sidexDir := filepath.Join(dir, ".scmcode")
 	os.MkdirAll(sidexDir, 0o755)
 	os.WriteFile(filepath.Join(sidexDir, "mcp.json"), []byte(`not json`), 0o644)
 

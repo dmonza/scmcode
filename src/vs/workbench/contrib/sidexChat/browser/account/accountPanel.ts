@@ -140,12 +140,11 @@ export class AccountPanel extends Component {
 		}
 	}
 
-	/** Human label for the `source` field on `ProviderStatus` (settings|env|cli|local). */
+	/** Human label for the `source` field on `ProviderStatus` (settings|env|local). */
 	private static _sourceLabel(source: string | null): string {
 		switch (source) {
 			case 'settings': return 'API key';
 			case 'env': return 'Environment';
-			case 'cli': return 'CLI login';
 			case 'local': return 'Local server';
 			default: return '';
 		}

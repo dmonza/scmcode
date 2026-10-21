@@ -84,7 +84,7 @@ function encodeFrame(opcode, data) {
 
 // ── Constants (from Rust via env vars) ──────────────────────────────────
 
-const SIDEX_DATA_DIR = path.join(os.homedir(), '.sidex');
+const SIDEX_DATA_DIR = path.join(os.homedir(), '.scmcode');
 const EXTENSIONS_DIR = process.env.SIDEX_EXTENSIONS_DIR || path.join(SIDEX_DATA_DIR, 'extensions');
 const USER_DATA_DIR = path.join(SIDEX_DATA_DIR, 'data');
 const GLOBAL_STORAGE_DIR = process.env.SIDEX_GLOBAL_STORAGE_DIR || path.join(USER_DATA_DIR, 'User', 'globalStorage');
@@ -353,7 +353,7 @@ class ClientConnection {
       environment: {
         isExtensionDevelopmentDebug: false,
         appRoot: process.cwd(),
-        appName: 'SideX',
+        appName: 'scmCode',
         appHost: 'desktop',
         appUriScheme: 'sidex',
         appLanguage: 'en',

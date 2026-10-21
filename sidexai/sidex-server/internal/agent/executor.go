@@ -66,7 +66,7 @@ func runTool(sess *session.Session, tc ai.ToolCall, local LocalExecRouter) strin
 		output, errStr = local.RunViaClient(tc)
 	} else {
 		if LocalExecTools[tc.Function.Name] && (sess.Tools == nil || sess.Tools.Sandbox == nil || !sess.Tools.Sandbox.Active) {
-			return "ERROR: tool " + tc.Function.Name + " must run in the Sidex desktop client or an active sandbox; refusing server-side workspace execution"
+			return "ERROR: tool " + tc.Function.Name + " must run in the scmCode desktop client or an active sandbox; refusing server-side workspace execution"
 		}
 		result := sess.Tools.Execute(tc.Function.Name, tc.Function.Arguments)
 		output = result.Output

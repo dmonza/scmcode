@@ -161,10 +161,12 @@ export class GeneralSection implements SettingsSection {
 	private _renderPrivacy(container: HTMLElement): void {
 		this._createSectionTitle(container, 'Privacy');
 		const card = this._createCard(container);
-		this._addToggleRow(card,
-			'Data Sharing',
-			'Help improve SideX by sharing anonymous usage data. No code or personal information is ever collected.',
-			'sidex.general.dataSharing', this._getSetting('dataSharing', true) as boolean);
+		// scmCode collects no usage data, so there is nothing to opt into.
+		const note = document.createElement('div');
+		note.className = 'sidex-settings-row-description';
+		note.style.padding = '12px 16px';
+		note.textContent = 'scmCode does not collect telemetry, analytics or usage data. Network requests only go to the model providers and extension registry you use.';
+		card.appendChild(note);
 	}
 
 

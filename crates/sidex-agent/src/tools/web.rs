@@ -56,7 +56,7 @@ pub fn fetch(args: &Args, _ctx: &ToolContext) -> Result<String> {
             "--max-time",
             "15",
             "-H",
-            "User-Agent: Sidex/1.0",
+            "User-Agent: scmCode/1.0",
             &url,
         ])
         .output()?;

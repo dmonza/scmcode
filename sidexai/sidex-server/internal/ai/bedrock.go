@@ -49,13 +49,6 @@ const (
 	// bedrockService is the SigV4 service name for both bedrock-runtime and
 	// bedrock-control-plane hosts.
 	bedrockService = "bedrock"
-
-	// AuthModeAWSSigV4 documents Bedrock's credential scheme for operators and
-	// the Rust side that assembles SIDEX_PROVIDER_BEDROCK_AUTH. It is
-	// informational only: streamBedrock always signs with SigV4 regardless of
-	// c.authMode, since Bedrock has exactly one auth scheme and there is
-	// nothing to branch on.
-	AuthModeAWSSigV4 = "aws_sigv4"
 )
 
 // IsBedrockAnthropic reports whether a provider must use Bedrock's signed

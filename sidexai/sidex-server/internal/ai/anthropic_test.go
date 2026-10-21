@@ -187,37 +187,17 @@ func TestParseAnthropicSSESurfacesErrorEvent(t *testing.T) {
 	}
 }
 
-func TestLocalProviderAuthModeDefaults(t *testing.T) {
+func TestLocalProviderKeyUsesDefaultBaseURL(t *testing.T) {
 	t.Setenv("SIDEX_PROVIDER_ANTHROPIC_KEY", "sk-ant-test")
 	cfg, ok := LocalProviderConfig("anthropic")
 	if !ok {
 		t.Fatal("anthropic should resolve from the environment")
 	}
-	if cfg.AuthMode != AuthModeAPIKey {
-		t.Errorf("auth mode = %q, want %q", cfg.AuthMode, AuthModeAPIKey)
+	if cfg.APIKey != "sk-ant-test" {
+		t.Errorf("api key = %q, want %q", cfg.APIKey, "sk-ant-test")
 	}
 	if cfg.BaseURL != "https://api.anthropic.com/v1" {
 		t.Errorf("base URL = %q", cfg.BaseURL)
-	}
-}
-
-func TestLocalProviderOAuthModeIsCarried(t *testing.T) {
-	t.Setenv("SIDEX_PROVIDER_ANTHROPIC_KEY", "oauth-token")
-	t.Setenv("SIDEX_PROVIDER_ANTHROPIC_AUTH", AuthModeOAuth)
-	cfg, ok := LocalProviderConfig("anthropic")
-	if !ok || cfg.AuthMode != AuthModeOAuth {
-		t.Fatalf("oauth mode not carried through: %+v", cfg)
-	}
-}
-
-func TestLocalProviderAccountIDIsCarried(t *testing.T) {
-	t.Setenv("SIDEX_PROVIDER_OPENAI_KEY", "tok")
-	t.Setenv("SIDEX_PROVIDER_OPENAI_BASE_URL", "https://chatgpt.com/backend-api/codex")
-	t.Setenv("SIDEX_PROVIDER_OPENAI_AUTH", AuthModeOAuth)
-	t.Setenv("SIDEX_PROVIDER_OPENAI_ACCOUNT_ID", "acct-9")
-	cfg, ok := LocalProviderConfig("openai")
-	if !ok || cfg.AccountID != "acct-9" {
-		t.Fatalf("account id not carried through: %+v", cfg)
 	}
 }
 
@@ -236,172 +216,27 @@ func TestRemoteProviderWithoutKeyIsRejected(t *testing.T) {
 	}
 }
 
-// TestStreamAnthropicHTTPContract pins the wire format: URL, headers for both
-// credential kinds, and the request body. A mock server makes this
-// deterministic, unlike hitting the real API.
+// TestStreamAnthropicHTTPContract pins the wire format: URL, headers and the
+// request body. A mock server makes this deterministic, unlike hitting the
+// real API.
 func TestStreamAnthropicHTTPContract(t *testing.T) {
-	for _, tc := range []struct {
-		name       string
-		authMode   string
-		wantHeader string
-		wantValue  string
-		wantBeta   bool
-	}{
-		{"api key", AuthModeAPIKey, "X-Api-Key", "sk-ant-test", false},
-		{"cli oauth", AuthModeOAuth, "Authorization", "Bearer oauth-token", true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			var gotPath, gotQuery, gotBeta, gotVersion, gotAuth, gotUA, gotXApp, gotSession string
-			var gotBody map[string]interface{}
-
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				gotPath = r.URL.Path
-				gotQuery = r.URL.RawQuery
-				gotBeta = r.Header.Get("anthropic-beta")
-				gotVersion = r.Header.Get("anthropic-version")
-				gotAuth = r.Header.Get(tc.wantHeader)
-				gotUA = r.Header.Get("User-Agent")
-				gotXApp = r.Header.Get("x-app")
-				gotSession = r.Header.Get("X-Claude-Code-Session-Id")
-				_ = json.NewDecoder(r.Body).Decode(&gotBody)
-
-				w.Header().Set("Content-Type", "text/event-stream")
-				fmt.Fprint(w, "data: {\"type\":\"content_block_delta\",\"index\":0,"+
-					"\"delta\":{\"type\":\"text_delta\",\"text\":\"ok\"}}\n")
-				fmt.Fprint(w, "data: {\"type\":\"message_stop\"}\n")
-			}))
-			defer srv.Close()
-
-			key := "sk-ant-test"
-			if tc.authMode == AuthModeOAuth {
-				key = "oauth-token"
-			}
-			c := (&Client{httpClient: srv.Client()}).WithModel("anthropic/claude-sonnet-4.6").
-				WithProviderConfig(ProviderConfig{
-					Provider: "anthropic",
-					APIKey:   key,
-					BaseURL:  srv.URL,
-					AuthMode: tc.authMode,
-					Enabled:  true,
-				})
-
-			var text strings.Builder
-			err := c.StreamChatWithOptions(
-				[]Message{{Role: RoleUser, Content: "hi"}}, nil, "be brief", nil,
-				func(ch StreamChunk) {
-					if ch.Type == "text" {
-						text.WriteString(ch.Content)
-					}
-				})
-			if err != nil {
-				t.Fatalf("stream failed: %v", err)
-			}
-
-			if gotPath != "/messages" {
-				t.Errorf("path = %q, want /messages", gotPath)
-			}
-			if gotVersion != anthropicVersion {
-				t.Errorf("anthropic-version = %q", gotVersion)
-			}
-			if gotAuth != tc.wantValue {
-				t.Errorf("%s = %q, want %q", tc.wantHeader, gotAuth, tc.wantValue)
-			}
-			// For an API key the gateway expects SideX's own identity (no
-			// Claude Code beta, no first-party identity headers).
-			if !tc.wantBeta {
-				if gotBeta != "" {
-					t.Errorf("anthropic-beta = %q, want empty for api key", gotBeta)
-				}
-				if gotXApp != "" {
-					t.Errorf("x-app = %q, want empty for api key", gotXApp)
-				}
-				if gotQuery != "" {
-					t.Errorf("query = %q, want empty for api key", gotQuery)
-				}
-				if gotSession != "" {
-					t.Errorf("session header = %q, want empty for api key", gotSession)
-				}
-				if gotBody["system"] != "be brief" {
-					t.Errorf("system = %v, want %q", gotBody["system"], "be brief")
-				}
-			} else {
-				if gotQuery != "beta=true" {
-					t.Errorf("query = %q, want beta=true", gotQuery)
-				}
-				if gotBeta != anthropicClaudeCodeBetas {
-					t.Errorf("anthropic-beta = %q, want %q", gotBeta, anthropicClaudeCodeBetas)
-				}
-				if gotUA != anthropicClaudeCodeUserAgent {
-					t.Errorf("User-Agent = %q, want %q", gotUA, anthropicClaudeCodeUserAgent)
-				}
-				if gotXApp != "cli" {
-					t.Errorf("x-app = %q, want %q", gotXApp, "cli")
-				}
-				if gotSession == "" {
-					t.Error("OAuth requests must send X-Claude-Code-Session-Id")
-				}
-				sys, ok := gotBody["system"].([]interface{})
-				if !ok || len(sys) < 1 {
-					t.Fatalf("oauth system = %v, want Claude Code identity blocks", gotBody["system"])
-				}
-				first, _ := sys[0].(map[string]interface{})
-				if first["text"] != claudeCodeSystemPrefix {
-					t.Errorf("first system block = %v, want Claude Code identity", first)
-				}
-			}
-			// The catalog id must be normalised to Anthropic's spelling.
-			if gotBody["model"] != "claude-sonnet-4-6" {
-				t.Errorf("model = %v, want claude-sonnet-4-6", gotBody["model"])
-			}
-			if _, ok := gotBody["max_tokens"]; !ok {
-				t.Error("max_tokens is required by the Messages API but was absent")
-			}
-			if text.String() != "ok" {
-				t.Errorf("text = %q, want %q", text.String(), "ok")
-			}
-		})
-	}
-}
-
-// A refusal of a connected subscription login must be explained, not reported
-// as a quota problem the user cannot act on.
-func TestSubscriptionAuthHintOnlyForContentlessOAuth429(t *testing.T) {
-	mk := func(status int, hdr map[string]string) *http.Response {
-		h := http.Header{}
-		for k, v := range hdr {
-			h.Set(k, v)
-		}
-		return &http.Response{StatusCode: status, Header: h}
-	}
-
-	if hint := subscriptionAuthHint(AuthModeOAuth, mk(429, nil)); hint == "" {
-		t.Error("a contentless 429 on an OAuth login should be explained")
-	} else if strings.Contains(hint, "OpenRouter") {
-		t.Error("the hint must not mention OpenRouter — this request never goes there")
-	} else if !strings.Contains(hint, "usage cap") {
-		t.Errorf("hint should describe a usage window, got %q", hint)
-	}
-	// A real quota limit says when to retry — leave that alone.
-	if hint := subscriptionAuthHint(AuthModeOAuth, mk(429, map[string]string{"retry-after": "30"})); hint != "" {
-		t.Error("a genuine rate limit must not be relabelled")
-	}
-	if hint := subscriptionAuthHint(AuthModeOAuth, mk(429, map[string]string{"anthropic-ratelimit-requests-remaining": "0"})); hint != "" {
-		t.Error("a limit carrying rate-limit metadata must not be relabelled")
-	}
-	// An API key hitting a real limit is a different situation entirely.
-	if hint := subscriptionAuthHint(AuthModeAPIKey, mk(429, nil)); hint != "" {
-		t.Error("an API key rate limit must not mention subscription logins")
-	}
-	if hint := subscriptionAuthHint(AuthModeOAuth, mk(500, nil)); hint != "" {
-		t.Error("only 429 carries this meaning")
-	}
-}
-
-func TestOAuthDropsMCPManagementTools(t *testing.T) {
+	var gotPath, gotQuery, gotBeta, gotVersion, gotKey, gotAuth string
 	var gotBody map[string]interface{}
+	var gotHeader http.Header
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotQuery = r.URL.RawQuery
+		gotBeta = r.Header.Get("anthropic-beta")
+		gotVersion = r.Header.Get("anthropic-version")
+		gotKey = r.Header.Get("X-Api-Key")
+		gotAuth = r.Header.Get("Authorization")
+		gotHeader = r.Header.Clone()
 		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+
 		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprint(w, "data: {\"type\":\"content_block_delta\",\"index\":0,"+
+			"\"delta\":{\"type\":\"text_delta\",\"text\":\"ok\"}}\n")
 		fmt.Fprint(w, "data: {\"type\":\"message_stop\"}\n")
 	}))
 	defer srv.Close()
@@ -409,33 +244,62 @@ func TestOAuthDropsMCPManagementTools(t *testing.T) {
 	c := (&Client{httpClient: srv.Client()}).WithModel("anthropic/claude-sonnet-4.6").
 		WithProviderConfig(ProviderConfig{
 			Provider: "anthropic",
-			APIKey:   "oauth-token",
+			APIKey:   "sk-ant-test",
 			BaseURL:  srv.URL,
-			AuthMode: AuthModeOAuth,
 			Enabled:  true,
 		})
+
+	var text strings.Builder
 	err := c.StreamChatWithOptions(
-		[]Message{{Role: RoleUser, Content: "hi"}},
-		[]ToolDef{
-			{Function: ToolFuncDef{Name: "read_file"}},
-			{Function: ToolFuncDef{Name: "mcp_connect"}},
-			{Function: ToolFuncDef{Name: "mcp_call_tool"}},
-			{Function: ToolFuncDef{Name: "mcp__github__search"}},
-		},
-		"", nil, func(StreamChunk) {})
+		[]Message{{Role: RoleUser, Content: "hi"}}, nil, "be brief", nil,
+		func(ch StreamChunk) {
+			if ch.Type == "text" {
+				text.WriteString(ch.Content)
+			}
+		})
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("stream failed: %v", err)
 	}
-	raw, _ := json.Marshal(gotBody["tools"])
-	s := string(raw)
-	if !strings.Contains(s, "read_file") {
-		t.Errorf("kept tools missing read_file: %s", s)
+
+	if gotPath != "/messages" {
+		t.Errorf("path = %q, want /messages", gotPath)
 	}
-	if !strings.Contains(s, "mcp__github__search") {
-		t.Errorf("official MCP prefix must be kept: %s", s)
+	if gotQuery != "" {
+		t.Errorf("query = %q, want empty", gotQuery)
 	}
-	if strings.Contains(s, "mcp_connect") || strings.Contains(s, "mcp_call_tool") {
-		t.Errorf("MCP management tools must be omitted on OAuth: %s", s)
+	if gotVersion != anthropicVersion {
+		t.Errorf("anthropic-version = %q", gotVersion)
+	}
+	if gotKey != "sk-ant-test" {
+		t.Errorf("X-Api-Key = %q, want %q", gotKey, "sk-ant-test")
+	}
+	if gotAuth != "" {
+		t.Errorf("Authorization = %q, want empty for an API key", gotAuth)
+	}
+	if gotBeta != "" {
+		t.Errorf("anthropic-beta = %q, want empty", gotBeta)
+	}
+	// scmCode presents only its own identity, never another client's.
+	for _, h := range []string{"x-app", "X-Claude-Code-Session-Id", "anthropic-dangerous-direct-browser-access"} {
+		if v := gotHeader.Get(h); v != "" {
+			t.Errorf("%s = %q, want empty", h, v)
+		}
+	}
+	if ua := gotHeader.Get("User-Agent"); strings.Contains(ua, "claude-cli") {
+		t.Errorf("User-Agent = %q, must not impersonate a first-party CLI", ua)
+	}
+	if gotBody["system"] != "be brief" {
+		t.Errorf("system = %v, want %q", gotBody["system"], "be brief")
+	}
+	// The catalog id must be normalised to Anthropic's spelling.
+	if gotBody["model"] != "claude-sonnet-4-6" {
+		t.Errorf("model = %v, want claude-sonnet-4-6", gotBody["model"])
+	}
+	if _, ok := gotBody["max_tokens"]; !ok {
+		t.Error("max_tokens is required by the Messages API but was absent")
+	}
+	if text.String() != "ok" {
+		t.Errorf("text = %q, want %q", text.String(), "ok")
 	}
 }
 
@@ -453,7 +317,6 @@ func TestAPIKeyKeepsMCPManagementTools(t *testing.T) {
 			Provider: "anthropic",
 			APIKey:   "sk-ant-test",
 			BaseURL:  srv.URL,
-			AuthMode: AuthModeAPIKey,
 			Enabled:  true,
 		})
 	if err := c.StreamChatWithOptions(

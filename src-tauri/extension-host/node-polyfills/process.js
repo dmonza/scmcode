@@ -301,7 +301,7 @@ Object.assign(process, {
   traceProcessWarnings: false,
 
   binding() {
-    throw new Error('process.binding is not supported in SideX polyfill');
+    throw new Error('process.binding is not supported in scmCode polyfill');
   },
 
   umask(mask) {

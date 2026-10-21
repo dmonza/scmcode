@@ -1,6 +1,6 @@
 [package]
 name = "sidex-textmate"
-description = "Native Rust port of `vscode-textmate` for SideX."
+description = "Native Rust port of `vscode-textmate` for scmCode."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

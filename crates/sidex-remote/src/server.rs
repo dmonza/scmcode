@@ -161,7 +161,7 @@ impl SideXServer {
     /// Start the server listening on a TCP port.
     pub async fn start_tcp(self: Arc<Self>, port: u16) -> Result<()> {
         let listener = tokio::net::TcpListener::bind(("0.0.0.0", port)).await?;
-        log::info!("SideX Server listening on port {port}");
+        log::info!("scmCode Server listening on port {port}");
         loop {
             let (stream, addr) = listener.accept().await?;
             log::info!("new connection from {addr}");
@@ -754,7 +754,7 @@ mod tests {
 
     #[test]
     fn base64_roundtrip() {
-        let original = b"Hello, SideX remote server!";
+        let original = b"Hello, scmCode remote server!";
         let encoded = base64_encode(original);
         let decoded = base64_decode(&encoded).unwrap();
         assert_eq!(original.as_slice(), decoded.as_slice());

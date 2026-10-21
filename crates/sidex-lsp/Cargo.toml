@@ -1,6 +1,6 @@
 [package]
 name = "sidex-lsp"
-description = "Language Server Protocol client for SideX"
+description = "Language Server Protocol client for scmCode"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

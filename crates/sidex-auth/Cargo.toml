@@ -1,6 +1,6 @@
 [package]
 name = "sidex-auth"
-description = "Generic OS keyring-backed secret storage for SideX."
+description = "Generic OS keyring-backed secret storage for scmCode."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

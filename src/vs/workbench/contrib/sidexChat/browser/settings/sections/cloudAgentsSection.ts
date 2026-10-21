@@ -53,7 +53,7 @@ export class CloudAgentsSection implements SettingsSection {
 
 		const text = document.createElement('div');
 		text.style.cssText = 'font-size:12px;color:var(--vscode-editor-foreground);line-height:1.5;';
-		text.textContent = 'SideX has no hosted infrastructure to run agents on — there\'s no remote environment, timeout, or queue to configure here. Every agent runs on this machine, using whichever providers and models you\'ve set up under Models.';
+		text.textContent = 'scmCode has no hosted infrastructure to run agents on — there\'s no remote environment, timeout, or queue to configure here. Every agent runs on this machine, using whichever providers and models you\'ve set up under Models.';
 		infoCol.appendChild(text);
 
 		row.appendChild(infoCol);

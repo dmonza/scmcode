@@ -1,5 +1,5 @@
 {
-  "name": "SideX Builder",
+  "name": "scmCode Builder",
   "build": {
     "dockerfile": "Dockerfile"
   },

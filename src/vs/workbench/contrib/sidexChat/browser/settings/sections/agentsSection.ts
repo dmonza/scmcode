@@ -161,11 +161,11 @@ export class AgentsSection implements SettingsSection {
 
 		const card = this._createCard(container);
 
-		this._createToggleRow(card, 'Commit Attribution', 'Mark commits as \'Made with SideX\'',
-			'sidex.agents.commitAttribution', this._getSetting('commitAttribution', true) as boolean);
+		this._createToggleRow(card, 'Commit Attribution', 'Mark commits as \'Made with scmCode\'',
+			'sidex.agents.commitAttribution', this._getSetting('commitAttribution', false) as boolean);
 
-		this._createToggleRow(card, 'PR Attribution', 'Mark pull requests as made with SideX',
-			'sidex.agents.prAttribution', this._getSetting('prAttribution', true) as boolean);
+		this._createToggleRow(card, 'PR Attribution', 'Mark pull requests as made with scmCode',
+			'sidex.agents.prAttribution', this._getSetting('prAttribution', false) as boolean);
 	}
 
 	private _renderGit(container: HTMLElement): void {

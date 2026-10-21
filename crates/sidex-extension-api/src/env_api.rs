@@ -44,7 +44,7 @@ pub struct EnvApi {
 impl EnvApi {
     pub fn new() -> Self {
         Self {
-            app_name: "SideX".into(),
+            app_name: "scmCode".into(),
             app_root: std::env::current_dir()
                 .unwrap_or_default()
                 .to_string_lossy()

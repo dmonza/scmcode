@@ -43,7 +43,7 @@ export class TabSection implements SettingsSection {
 	private _renderCompletionSettings(container: HTMLElement): void {
 		const card = this._createCard(container);
 
-		this._createToggleRow(card, 'Sidex Tab', 'Context-aware multi-line code suggestions as you type',
+		this._createToggleRow(card, 'scmCode Tab', 'Context-aware multi-line code suggestions as you type',
 			'sidex.tab.cursorTab', this._getSetting('cursorTab', true) as boolean);
 
 		this._createToggleRow(card, 'Partial Accepts', 'Accept the next word of a suggestion via Cmd+\u2192',

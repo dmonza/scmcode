@@ -88,7 +88,7 @@ pub fn get_user_data_dir(app: tauri::AppHandle) -> Result<String, String> {
 pub(crate) fn resolve_user_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     #[cfg(target_os = "linux")]
     if let Some(config_dir) = dirs::config_dir() {
-        return Ok(config_dir.join("SideX").join("UserData"));
+        return Ok(config_dir.join("scmCode").join("UserData"));
     }
 
     let dir = app

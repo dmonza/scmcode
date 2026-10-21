@@ -113,11 +113,11 @@ pub fn install_server_in_wsl(distro: &str) -> Result<()> {
     )?;
     let version = env!("CARGO_PKG_VERSION");
     if check.stdout.trim() == version {
-        log::info!("SideX Server already up-to-date in WSL distro {distro}");
+        log::info!("scmCode Server already up-to-date in WSL distro {distro}");
         return Ok(());
     }
     exec_in_wsl(distro, "mkdir -p ~/.sidex-server")?;
-    log::info!("installing SideX Server {version} in WSL distro {distro}");
+    log::info!("installing scmCode Server {version} in WSL distro {distro}");
     Ok(())
 }
 

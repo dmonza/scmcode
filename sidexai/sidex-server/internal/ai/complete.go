@@ -150,6 +150,9 @@ func (c *Client) Complete(ctx context.Context, req CompletionRequest, model stri
 
 // completeOpenRouter uses OpenRouter's OpenAI-compatible API for completions.
 func (c *Client) completeOpenRouter(ctx context.Context, req CompletionRequest, model string, maxTokens int) (CompletionResponse, error) {
+	if c.baseURL == "" {
+		return CompletionResponse{}, ErrNoProvider
+	}
 	if model == "" {
 		model = "anthropic/claude-haiku-3.5"
 	}

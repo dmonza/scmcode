@@ -8,21 +8,13 @@ use std::time::Duration;
 const MAX_RESPONSE_BYTES: usize = 50 * 1024 * 1024; // 50 MB
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
+// scmCode: only Open VSX (queried directly, no proxy) and GitHub. The
+// upstream marketplace proxy and Microsoft Marketplace hosts were removed:
+// the Microsoft Marketplace terms only allow Microsoft products to use it.
 const ALLOWED_HOSTS: &[&str] = &[
-    // SideX marketplace (Open VSX + Microsoft, via the siden.ai Worker)
-    "marketplace.siden.ai",
     // Open VSX
     "open-vsx.org",
     "openvsx.eclipsecontent.org",
-    // Microsoft Marketplace
-    "marketplace.visualstudio.com",
-    "az764295.vo.msecnd.net",
-    "vscode-unpkg.net",
-    "gallery.vsassets.io",
-    "vsmarketplacebadges.dev",
-    "vscode.blob.core.windows.net",
-    // VS Code asset CDN (VSIX packages + icons)
-    "vsassets.io",
     "openvsxorg.blob.core.windows.net",
     // GitHub (readme images, OAuth, API, codespaces, extension assets)
     "github.com",
@@ -30,8 +22,6 @@ const ALLOWED_HOSTS: &[&str] = &[
     "raw.githubusercontent.com",
     "objects.githubusercontent.com",
     "codeload.github.com",
-    // Updates
-    "update.code.visualstudio.com",
 ];
 
 fn validate_url(url: &str) -> Result<reqwest::Url, String> {

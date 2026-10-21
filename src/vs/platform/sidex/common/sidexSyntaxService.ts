@@ -32,7 +32,7 @@ export class SideXSyntaxService {
 				return languages;
 			}
 		} catch (e) {
-			console.warn('[SideX] Failed to get languages from Rust:', e);
+			console.warn('[scmCode] Failed to get languages from Rust:', e);
 		}
 		return [];
 	}

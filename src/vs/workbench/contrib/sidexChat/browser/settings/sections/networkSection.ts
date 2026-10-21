@@ -17,18 +17,15 @@ interface ProviderStatusInfo {
 }
 
 /**
- * SideX has no account, no hosted app, and no telemetry, so there is no
- * fixed backend to allowlist. What's left are the two external services
- * that exist regardless of which AI provider the user picks:
- *   - the extension marketplace proxy (`extensionsGallery.serviceUrl` in
- *     `src/vs/platform/product/common/product.ts`, backed by Open VSX)
- *   - the auto-update feed (`plugins.updater.endpoints` in
- *     `src-tauri/tauri.conf.json`)
- * Keep these in sync with those files if either endpoint moves.
+ * scmCode has no account, no hosted app, and no telemetry, so there is no
+ * fixed backend to allowlist. The only external service that exists
+ * regardless of which AI provider the user picks is the extension registry
+ * (`extensionsGallery.serviceUrl` in index.html and
+ * `src/vs/platform/product/common/product.ts`, Open VSX queried directly).
+ * There is no default update feed. Keep this in sync if that endpoint moves.
  */
 const FIXED_DOMAINS = [
-	'marketplace.siden.ai',
-	'cdn.siden.ai',
+	'open-vsx.org',
 ];
 
 function isLoopbackHost(host: string): boolean {
@@ -125,7 +122,7 @@ export class NetworkSection implements SettingsSection {
 		left.appendChild(label);
 		const desc = document.createElement('div');
 		desc.className = 'sidex-settings-row-description';
-		desc.textContent = 'These domains must be accessible for SideX to function: your configured AI provider(s), the extension marketplace, and update checks. Add them to your firewall or proxy allowlist.';
+		desc.textContent = 'These domains must be accessible for scmCode to function: your configured AI provider(s) and the extension registry (Open VSX). Add them to your firewall or proxy allowlist.';
 		left.appendChild(desc);
 		const note = document.createElement('div');
 		note.className = 'sidex-settings-row-description';

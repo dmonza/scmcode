@@ -1,6 +1,6 @@
 [package]
 name = "sidex-extensions"
-description = "Extension host management for SideX — Node.js extension host + WASM extensions"
+description = "Extension host management for scmCode — Node.js extension host + WASM extensions"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -1,68 +1,176 @@
-<h1 align="center">SideX</h1>
+<h1 align="center">scmCode</h1>
 
 <p align="center">
-  <strong>VSCode's workbench, without Electron.</strong>
+  <strong>A minimal, privacy-focused code editor.</strong>
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/8CUCnEAC4J"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="https://github.com/Sidenai/sidex/issues"><img src="https://img.shields.io/badge/Contributing-Welcome-brightgreen?style=for-the-badge" alt="Contributing"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/Built_with-Tauri_2-FFC131?style=for-the-badge&logo=tauri&logoColor=white" alt="Built with Tauri">
+  <img src="https://img.shields.io/badge/Telemetry-None-3ddc97?style=for-the-badge" alt="No telemetry">
 </p>
 
-<br>
-
 <p align="center">
-  <img src="./docs/assets/preview.jpg" alt="SideX — VSCode workbench running on Tauri" width="900">
-</p>
-
-<br>
-
-<p align="center">
-  <a href="#why">Why</a> · <a href="#whats-working">What's Working</a> · <a href="#ai-agent">AI Agent</a> · <a href="#getting-started">Getting Started</a> · <a href="#how-its-built">How It's Built</a> · <a href="#contributing">Contributing</a> · <a href="https://discord.gg/8CUCnEAC4J">Discord</a>
+  <a href="#pillars">Pillars</a> · <a href="#security-is-your-responsibility">Security</a> · <a href="#disclaimer-and-limitation-of-liability">Disclaimer</a> · <a href="#privacy">Privacy</a> · <a href="#whats-different-from-sidex">What's different</a> · <a href="#ai-agent">AI Agent</a> · <a href="#getting-started">Getting Started</a> · <a href="#credits-and-license">Credits &amp; License</a>
 </p>
 
 ---
 
-SideX is a port of Visual Studio Code that replaces Electron with [Tauri](https://tauri.app/) — a Rust backend and OS's native webview. The same TypeScript workbench, the same editor, terminal, and Git integration, running without a bundled browser.
+## An MIT-licensed derivative of SideX
 
-> **Early release.** Core editing and the terminal are solid. The extension host and debugger are still in progress. See [What's Working](#whats-working) for the full picture.
+**scmCode is a derivative work (fork) of [SideX](https://github.com/Sidenai/sidex),
+distributed under the MIT License, the same license as SideX.**
+
+- SideX is Copyright (c) 2025 - present Siden Technologies Inc., and is itself a port of
+  Visual Studio Code ([Code - OSS](https://github.com/microsoft/vscode), Copyright (c) 2015 -
+  present Microsoft Corporation, MIT) from Electron to [Tauri](https://tauri.app/).
+- Their copyright and permission notices are preserved in [LICENSE](./LICENSE) and in the
+  source file headers, as the MIT License requires.
+- scmCode is an independent project. It is **not affiliated with, sponsored by, or endorsed
+  by Siden Technologies Inc. or Microsoft Corporation**. "SideX" and "Visual Studio Code" are
+  names and trademarks of their respective owners and are used here only to say where this
+  code comes from.
+
+See [NOTICE.md](./NOTICE.md) for the full attribution and the list of changes from SideX.
+
+scmCode is the VS Code workbench running on a Rust backend and your OS's native webview: the same TypeScript editor, terminal and Git integration, without a bundled browser.
+
+> **Early release.** Core editing and the terminal are solid. The extension host and debugger are still in progress.
 
 ---
 
-## Why
+## Pillars
 
-VSCode's memory useage is almost entirely from its bundled Chromium, not the editor itself. Tauri replaces that with the webview already on your system — WKWebView on macOS, WebView2 on Windows — shared across apps and costing almost nothing extra.
+scmCode is built on two pillars. Every change to the project is judged against them.
 
-<p align="center">
-  <img src="./docs/assets/compare.jpg" alt="SideX 16.4 MB vs Visual Studio Code 797.8 MB" width="760">
-</p>
+### 1. Minimalism
 
-RAM savings are most tested on macOS, WKWebView is shared with Safari. On Windows the picture is more nuanced — WebView2 memory can look higher depending on how it's measured, and [it's an active area in the Tauri ecosystem](https://github.com/tauri-apps/tauri/issues/5889). The target is **under 200 MB at idle** on macOS. We'll publish real benchmarks once the app is stable enough for them to be meaningful.
+- Keep only what a code editor needs. Remove features, services and dependencies that
+  are not essential.
+- No accounts, no hosted backend, no vendor integrations, no community or marketing
+  surfaces in the app.
+- When in doubt, remove code instead of adding it. New features must be optional.
+
+### 2. Privacy
+
+- **Design goal: nothing leaves your machine unless you asked for it.**
+- scmCode's own code is designed with no telemetry, no analytics, no crash reporting, no
+  remote experiments and no silent fallbacks to third-party services.
+- The network connections scmCode's own code is known to make are documented in
+  [PRIVACY.md](./PRIVACY.md), together with what triggers them.
+
+These are design goals, not guarantees. See the [Disclaimer](#disclaimer-and-limitation-of-liability).
 
 ---
 
-## What's Working
+## Security is your responsibility
 
-**Solid:**
+scmCode does not send your data anywhere on its own, but **it does not make your machine
+secure for you. Your security depends on how you use the editor and on the extensions you
+install.**
 
-- Monaco editor with syntax highlighting and basic IntelliSense
-- File explorer — open folders, create, rename, delete
-- Integrated terminal — full PTY via Rust, shell detection, resize, signals
-- Git — status, diff, log, stage, commit, branch, push/pull/fetch, stash, reset
-- Themes — multiple built-in themes from the VSCode catalogue
-- Native OS menus (macOS, Windows, Linux)
-- Extension installation from [Open VSX](https://open-vsx.org/)
-- File watching, file search, full-text search, Rust-backed search index
-- SQLite storage, document management (autosave, undo/redo, encoding)
-- Built-in AI agent — chat, inline diffs, shell commands, multi-file edits; bring your own model provider, no account needed (see [AI Agent](#ai-agent))
+- **Extensions run with your permissions.** Extensions you install from Open VSX (or
+  anywhere else) run their own code. They can read your files, run processes and make
+  network requests, including telemetry. scmCode does not audit, sandbox or vouch for them.
+  Install only extensions you trust, and review what they do.
+- **The AI agent acts on your behalf.** It can run shell commands and edit files. Review
+  what it does, and choose model providers you trust with your code. A local model keeps
+  everything on your machine.
+- **Workspaces can contain code that runs.** Tasks, Git hooks, build scripts and MCP servers
+  from a repository execute on your machine. Open only workspaces you trust.
+- **You choose what connects outward.** Model providers, Git remotes, remote hosts and
+  any opt-in setting described in [PRIVACY.md](./PRIVACY.md) are your decisions.
+- **Keep backups.** Use version control and backups for anything you open in scmCode.
+
+---
+
+## Disclaimer and limitation of liability
+
+scmCode is free, open-source software distributed under the [MIT License](./LICENSE).
+By using, building, modifying or distributing it, you accept the following:
+
+- **No warranty.** The software is provided **"AS IS", without warranty of any kind**,
+  express or implied, including but not limited to the warranties of merchantability,
+  fitness for a particular purpose and non-infringement. Nothing in this README,
+  [PRIVACY.md](./PRIVACY.md), [NOTICE.md](./NOTICE.md) or any other documentation is a
+  warranty, guarantee or contractual commitment. Statements about privacy, security or
+  behavior describe the intended design to the best of the authors' knowledge and may be
+  incomplete or wrong.
+- **No liability.** In no event shall the authors, contributors or copyright holders of
+  scmCode, SideX or Code - OSS be liable for any claim, damages or other liability —
+  including loss or corruption of data or code, security incidents, data exposure,
+  service charges, downtime or any direct, indirect, incidental or consequential damage —
+  whether in an action of contract, tort or otherwise, arising from, out of or in
+  connection with the software or its use.
+- **Use at your own risk.** You alone are responsible for how you use scmCode: the files
+  and workspaces you open, the commands you run, the extensions you install, and every
+  action taken by the AI agent on your behalf, including file edits, deletions, shell
+  commands and Git operations. AI output can be wrong, insecure or destructive; review it
+  before relying on it.
+- **Third-party services and code are not ours.** Model providers, extension registries,
+  extensions, MCP servers, language servers, Git hosts and any other service or code you
+  connect to are operated by third parties under their own terms, privacy policies and
+  pricing. You are responsible for complying with those terms and for any costs incurred
+  (for example, model API usage billed by your provider).
+- **No professional advice.** Nothing in scmCode or its documentation is legal, security,
+  compliance or other professional advice.
+- **Your own compliance.** If you use scmCode in a regulated environment or with data
+  belonging to others, you are responsible for meeting the applicable legal, contractual
+  and security requirements.
+
+Where applicable law does not allow some of these exclusions, they apply to the maximum
+extent permitted by that law. The binding terms are those of the [LICENSE](./LICENSE).
+
+---
+
+## Privacy
+
+How the privacy pillar is implemented (design description, not a guarantee):
+
+- **No telemetry or analytics.** The VS Code telemetry service is a no-op stub, the
+  Microsoft 1DS telemetry code and dependencies are removed, and the agent server's
+  analytics package (PostHog upstream) is a no-op with the SDK removed.
+- **No account, no hosted backend.** There is no sign-in and no scmCode server. The AI
+  agent runs locally on `127.0.0.1` and talks only to the model provider *you* configure.
+- **No silent fallbacks.** If no model provider is configured, AI requests fail locally
+  instead of being sent to a default third-party endpoint.
+- **No background update checks.** There is no update feed. Updates are not checked or
+  installed automatically, and the updater refuses updates without a valid signature.
+- **No vendor proxies.** Extensions come straight from [Open VSX](https://open-vsx.org/).
+  Workspace extension recommendations are not looked up automatically.
+
+The list of network connections scmCode's own code is known to make, and what triggers
+each one, is in **[PRIVACY.md](./PRIVACY.md)**.
+
+---
+
+## What's different from SideX
+
+| Area | SideX | scmCode |
+|---|---|---|
+| Extension gallery | SideX proxy (`marketplace.siden.ai`) merging Microsoft Marketplace + Open VSX | Open VSX directly |
+| Agent server analytics | PostHog client, enabled by an env var | Removed (no-op) |
+| Live model pricing | Fetched from openrouter.ai at startup and hourly | Off; opt-in with `SIDEX_LIVE_PRICING=1` |
+| Default model endpoint | Implicit fallback to openrouter.ai | None — must be configured explicitly |
+| Provider attribution headers | `HTTP-Referer` / `X-Title` sent to OpenRouter | Not sent |
+| Claude Code / Codex CLI logins | Optional reuse of the CLI's subscription token, presented as the official CLI | Removed; API keys or local models only |
+| Subscription quota checks | `api.anthropic.com` / `chatgpt.com` usage endpoints for connected logins | Removed |
+| Auto-update | Background checks; SideX signing key; SideX CDN release job | No feed, no SideX key, checks only if enabled; unsigned updates refused |
+| Workspace recommendations | Looked up in the gallery on folder open | Disabled by default |
+| Language servers | Downloaded even if installed locally | Local binary preferred |
+| Commit/PR attribution toggles | On | Off |
+| Telemetry code | Dormant 1DS appenders and completion telemetry | Deleted |
+| Branding | SideX name, logo, community links | scmCode name and icon |
+
+Internal identifiers (`sidex-*` crates, `SideX*` classes, `SIDEX_*` environment variables,
+the `sidexai/` directory) intentionally keep their upstream names so that SideX changes can
+still be merged.
 
 ---
 
 ## AI Agent
 
-SideX has a built-in coding agent, and it needs no SideX account of any kind — no sign-in, no identity provider, no hosted service in the path. Every request goes from the editor to a server running on your own machine, and from there straight to whichever model provider you point it at.
+scmCode has a built-in coding agent that needs no account of any kind. Every request goes from the editor to a server running on your own machine, and from there straight to whichever model provider you point it at.
 
 ### How it starts
 
@@ -70,35 +178,38 @@ On launch, the app spawns its own agent server (`sidexai/sidex-server`, written 
 
 ### Bring your own model
 
-There are no built-in model presets. You add a provider and a model ID yourself in **Settings → Models**. Credentials are resolved in this order, first match wins (see [`src-tauri/src/commands/providers.rs`](./src-tauri/src/commands/providers.rs)):
+There are no built-in model presets and no default provider. You add a provider and a model ID yourself in **Settings → Models**. Credentials are resolved in this order, first match wins (see [`src-tauri/src/commands/providers.rs`](./src-tauri/src/commands/providers.rs)):
 
 1. a key entered in **Settings → Models**
 2. an environment variable already in your shell (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and so on — see [`.env.example`](./.env.example) for the full list)
-3. an existing **Claude Code** or **Codex** CLI login on your machine, opt-in per provider
-4. a keyless local model server on loopback — Ollama, LM Studio, llama.cpp, or vLLM — detected automatically
+3. a keyless local model server on loopback — Ollama, LM Studio, llama.cpp, or vLLM — detected automatically
 
-Anthropic is called through its native Messages API (`/v1/messages`); every other provider, including local servers, is treated as OpenAI-compatible (`/chat/completions`).
+For maximum privacy, use a local model server: then prompts and code are sent only to that local server.
 
-Credentials reach the agent server only through its process environment (`SIDEX_PROVIDER_<PROVIDER>_KEY` / `_BASE_URL` / `_AUTH`), set fresh each time the app starts or restarts it. They're never written to a config file and never sent to the webview.
+Credentials reach the agent server only through its process environment (`SIDEX_PROVIDER_<PROVIDER>_KEY` / `_BASE_URL`), set fresh each time the app starts or restarts it. API keys entered in Settings are kept in the OS keyring (or a local fallback store), not in the agent server's configuration, and are not sent to the webview.
 
-> **Claude Code / Codex CLI logins** are optional, per provider, and off by default. SideX talks to Anthropic and ChatGPT with the same first-party client identity those CLIs use, so a connected login can run models. Usage still counts against that subscription. A billed API key in Settings → Models is the path that does not depend on a CLI login or the provider's consumer terms.
+scmCode does not read or reuse logins from other applications. SideX's option to reuse an
+existing Claude Code or Codex CLI login was removed: it worked by taking that CLI's
+subscription token and presenting itself to the provider as the official CLI. Use an API key
+from your provider's console, or a local model, instead. You are responsible for complying
+with your provider's terms of service.
 
 ### Security: this server runs commands on your machine
 
-The agent server executes shell commands and edits files on your behalf — that's what lets it act as an agent. Binding it to `127.0.0.1` only is a deliberate security boundary, not an accident: nothing else on your network can reach it.
+The agent server executes shell commands and edits files on your behalf. Binding it to `127.0.0.1` only is a deliberate security boundary: nothing else on your network can reach it.
 
-`SIDEX_BIND_ADDR` can widen that if you need to, but the server refuses to start on a non-loopback address unless you explicitly opt in with `SIDEX_ALLOW_UNAUTHENTICATED=1`. Don't set that unless you understand the exposure and have your own authentication sitting in front of it — an open port on this server means arbitrary code execution for whoever can reach it.
+`SIDEX_BIND_ADDR` can widen that, but the server refuses to start on a non-loopback address unless you explicitly opt in with `SIDEX_ALLOW_UNAUTHENTICATED=1`. Don't set that unless you understand the exposure — an open port on this server means arbitrary code execution for whoever can reach it.
 
 ### Building the agent server
 
-The agent server needs **Go 1.26 or later** to build (see [`sidexai/sidex-server/go.mod`](./sidexai/sidex-server/go.mod)):
+The agent server needs **Go 1.26 or later** and a C compiler (CGO, for SQLite and tree-sitter):
 
 ```bash
 cd sidexai/sidex-server
 go build -tags fts5 -o sidex-server ./cmd/server
 ```
 
-The app looks for a binary at that path automatically when running from a source checkout. Without it, everything except the chat panel works normally. See [`sidexai/sidex-server/.env.example`](./sidexai/sidex-server/.env.example) if you'd rather run the server yourself instead of letting the app manage it.
+The app looks for a binary at that path automatically when running from a source checkout. See [`sidexai/sidex-server/.env.example`](./sidexai/sidex-server/.env.example) if you'd rather run the server yourself.
 
 ---
 
@@ -107,8 +218,8 @@ The app looks for a binary at that path automatically when running from a source
 ### Run in Development
 
 ```bash
-git clone https://github.com/Sidenai/sidex.git
-cd sidex
+git clone https://github.com/dmonza/scmcode.git
+cd scmcode
 npm install
 npm run tauri dev
 ```
@@ -120,19 +231,21 @@ npm install
 npx tauri build
 ```
 
-`npx tauri build` runs the frontend build for you (`npm run build`), which already raises Vite's Node heap limit to 12 GB internally — no `NODE_OPTIONS` needed on a normal machine. If you still hit an out-of-memory error, raise it further yourself with `NODE_OPTIONS="--max-old-space-size=16384"` before the command.
+`npx tauri build` runs the frontend build for you (`npm run build`), which raises Vite's Node heap limit internally. If you still hit an out-of-memory error, set `NODE_OPTIONS="--max-old-space-size=16384"`.
 
-First build takes 5–10 minutes (Rust compile time). Pre-built binaries are not distributed yet.
+On Windows, the Rust build needs [NASM](https://www.nasm.us/) for `aws-lc-sys`, or set `AWS_LC_SYS_PREBUILT_NASM=1` to use its prebuilt objects.
 
-Everything above runs standalone, with no account and no setup. Want the chat panel connected too? See [AI Agent](#ai-agent) above — building the agent server is a separate, optional step.
+### Shipping your own updates (optional)
+
+scmCode ships with no update feed and no signing key. To distribute signed updates for your own builds, generate a key pair with `npx tauri signer generate`, put the public key and your endpoint under `plugins.updater` in [`src-tauri/tauri.conf.json`](./src-tauri/tauri.conf.json) (`pubkey`, `endpoints`), and set `update.mode` in settings. Without a public key, the updater refuses to install anything.
 
 ---
 
 ## How It's Built
 
-SideX maps VSCode's Electron architecture onto Tauri layer by layer:
+scmCode (like SideX) maps VS Code's Electron architecture onto Tauri layer by layer:
 
-| VSCode (Electron) | SideX (Tauri) |
+| VS Code (Electron) | scmCode (Tauri) |
 |---|---|
 | Electron main process | Tauri Rust backend |
 | `BrowserWindow` | `WebviewWindow` |
@@ -142,76 +255,30 @@ SideX maps VSCode's Electron architecture onto Tauri layer by layer:
 | Renderer (DOM + TypeScript) | Same — runs in native webview |
 | Extension host | Sidecar process (in progress) |
 
-The TypeScript frontend is a direct port of VSCode's workbench. The Rust backend is in `src-tauri/src/commands/` and handles everything that would have been a Node.js native module: file I/O, terminal PTY, Git, file watching, search indexing, SQLite, and process management.
-
 ### Project Layout
 
 ```
-sidex/
-├── src/                    # TypeScript workbench (ported from VSCode)
-│   └── vs/
-│       ├── base/           # Core utilities
-│       ├── platform/       # Platform services and dependency injection
-│       ├── editor/         # Monaco editor
-│       └── workbench/      # IDE shell, panels, features, contributions
-├── src-tauri/              # Rust backend
-│   └── src/
-│       ├── commands/       # fs, terminal, git, search, debug, providers, etc.
-│       ├── server.rs       # Supervises the local agent server
-│       ├── lib.rs          # App setup and command registration
-│       └── main.rs         # Entry point
+scmcode/
+├── src/                    # TypeScript workbench (ported from VS Code)
+├── src-tauri/              # Rust backend (commands, agent-server supervisor, app setup)
 ├── sidexai/sidex-server/   # Go agent server (chat, tools, MCP, memory)
-├── crates/                 # Rust support crates — agent tools, context engine, git, LSP, DAP, terminal, extensions, and more
+├── crates/                 # Rust support crates — agent tools, context engine, git, LSP, DAP, terminal, extensions, …
 ├── index.html
 ├── vite.config.ts
 └── package.json
 ```
 
-### Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | TypeScript, Vite 6, Monaco Editor |
-| Terminal UI | xterm.js + WebGL renderer |
-| Syntax / Themes | vscode-textmate, vscode-oniguruma (WASM) |
-| Backend | Rust, Tauri 2 |
-| Terminal | portable-pty (Rust) |
-| File watching | notify crate (FSEvents on macOS) |
-| Search | dashmap + rayon + regex (parallel, Rust) |
-| Storage | SQLite via rusqlite |
-| Extensions | Open VSX registry |
-| Agent server | Go, own process on loopback ([`sidexai/sidex-server`](./sidexai/sidex-server)) |
-
-For a deeper dive, see [ARCHITECTURE.md](./ARCHITECTURE.md)
+For a deeper dive, see [ARCHITECTURE.md](./ARCHITECTURE.md). To contribute, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ---
 
-## Contributing
+## Credits and License
 
-This was released early to get outside contributors involved.
+scmCode is released under the [MIT License](./LICENSE).
 
-### How to Contribute
+It is built on the work of:
 
-1. Fork the repo and create a branch
-2. Pick something — check [Issues](https://github.com/Sidenai/sidex/issues) or grab something from the Known Gaps list above
-3. Submit a PR — contributors get credited
+- **[SideX](https://github.com/Sidenai/sidex)** — Copyright (c) 2025 - present Siden Technologies Inc., MIT License.
+- **[Visual Studio Code — Code - OSS](https://github.com/microsoft/vscode)** — Copyright (c) 2015 - present Microsoft Corporation, MIT License.
 
-### Dev Notes
-
-- Follows VSCode's patterns — familiar if you've read the VSCode source
-- TypeScript imports use `.js` extensions (ES module convention)
-- Services use VSCode's `@inject` dependency injection decorators
-- New Rust commands go in `src-tauri/src/commands/` and register in `lib.rs`
----
-
-## Community
-
-- **Discord:** [Join the SideX server](https://discord.gg/8CUCnEAC4J)
-- **X / Twitter:** [@ImRazshy](https://x.com/ImRazshy)
-- **Email:** kendall@siden.ai
-
----
-
-## License
-
-MIT — SideX is a port of [Visual Studio Code (Code - OSS)](https://github.com/microsoft/vscode), which is also MIT licensed. See [LICENSE](./LICENSE) for details.
+Their copyright and permission notices are preserved in [LICENSE](./LICENSE) and in source file headers, as the MIT License requires. Details in [NOTICE.md](./NOTICE.md).

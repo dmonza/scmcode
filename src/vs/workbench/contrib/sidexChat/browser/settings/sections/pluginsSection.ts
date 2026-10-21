@@ -36,7 +36,7 @@ export class PluginsSection implements SettingsSection {
 		const desc = document.createElement('div');
 		desc.className = 'sidex-settings-row-description';
 		desc.style.marginBottom = '16px';
-		desc.textContent = 'Extend SideX with community plugins';
+		desc.textContent = 'Extend scmCode with community plugins';
 		container.appendChild(desc);
 
 		this._renderBrowserSection(container);

@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "AI coding agent tool executor for Sidex"
+description = "AI coding agent tool executor for scmCode"
 
 [dependencies]
 reqwest = { version = "0.12", features = ["blocking", "json"] }

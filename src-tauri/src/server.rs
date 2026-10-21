@@ -320,7 +320,7 @@ fn looks_like_a_problem(line: &str) -> bool {
 }
 
 /// A previous `tauri dev` / crash can leave `sidex-server` running with
-/// `~/.sidex/state.db` locked. The next spawn then sits on that lock until
+/// `~/.scmcode/state.db` locked. The next spawn then sits on that lock until
 /// the health timeout, never binds, and the UI talks to an empty port.
 fn kill_orphan_servers(bin: &Path) {
     let bin_s = bin.to_string_lossy();
@@ -782,7 +782,7 @@ mod tests {
         ));
 
         assert!(!looks_like_a_problem(
-            "Sidex server listening on 127.0.0.1:7433"
+            "scmCode server listening on 127.0.0.1:7433"
         ));
         assert!(!looks_like_a_problem(
             "mcp: connected to \"foo\" (stdio) — 3 tools registered"

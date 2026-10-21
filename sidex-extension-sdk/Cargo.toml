@@ -2,9 +2,9 @@
 name = "sidex-extension-sdk"
 version = "0.1.0"
 edition = "2021"
-description = "SDK for building native SideX extensions in Rust (WASM Component Model)"
+description = "SDK for building native scmCode extensions in Rust (WASM Component Model)"
 license = "MIT"
-repository = "https://github.com/sidenai/sidex"
+repository = "https://github.com/dmonza/scmcode"
 
 [dependencies]
 wit-bindgen = "0.41"

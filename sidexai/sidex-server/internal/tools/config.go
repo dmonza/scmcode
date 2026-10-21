@@ -10,7 +10,7 @@ import (
 func init_config(r *Registry) {
 	r.tools["config"] = Tool{
 		Name: "config",
-		Description: `Read or write Sidex configuration settings. Use "get" to read a setting, "set" to change one, "list" to see all settings.
+		Description: `Read or write scmCode configuration settings. Use "get" to read a setting, "set" to change one, "list" to see all settings.
 
 This tool operates on .sidex/config.json in the project directory.`,
 		Parameters: map[string]interface{}{
@@ -27,7 +27,7 @@ This tool operates on .sidex/config.json in the project directory.`,
 
 func (r *Registry) config(args map[string]interface{}) ExecutionResult {
 	action := str(args, "action")
-	configPath := filepath.Join(r.cwd, ".sidex", "config.json")
+	configPath := filepath.Join(r.cwd, ".scmcode", "config.json")
 
 	switch action {
 	case "list":

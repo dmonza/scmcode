@@ -571,7 +571,7 @@ pub fn build_init_data(
                 .unwrap_or_else(|_| std::path::PathBuf::from("."))
                 .to_string_lossy()
                 .to_string(),
-            app_name: "SideX".to_string(),
+            app_name: "scmCode".to_string(),
             app_host: "desktop".to_string(),
             app_uri_scheme: "sidex".to_string(),
             app_language: "en".to_string(),

@@ -120,7 +120,7 @@ export class RulesSection implements SettingsSection {
 
 		// Load rules from .sidex/rules/ directory
 		try {
-			const rulesDir = await this._invoke('read_dir', { path: this._workspacePath + '/.sidex/rules' }) as { entries: { name: string; is_dir: boolean }[] } | null;
+			const rulesDir = await this._invoke('read_dir', { path: this._workspacePath + '/.scmcode/rules' }) as { entries: { name: string; is_dir: boolean }[] } | null;
 			if (rulesDir && rulesDir.entries) {
 				this._rules = rulesDir.entries
 					.filter(e => !e.is_dir && (e.name.endsWith('.md') || e.name.endsWith('.mdc')))
@@ -135,12 +135,12 @@ export class RulesSection implements SettingsSection {
 
 		// Also check user-level rules
 		try {
-			const homeRules = await this._invoke('read_dir', { path: '~/.sidex/rules' }) as { entries: { name: string; is_dir: boolean }[] } | null;
+			const homeRules = await this._invoke('read_dir', { path: '~/.scmcode/rules' }) as { entries: { name: string; is_dir: boolean }[] } | null;
 			if (homeRules && homeRules.entries) {
 				const userRules = homeRules.entries
 					.filter(e => !e.is_dir && (e.name.endsWith('.md') || e.name.endsWith('.mdc')))
 					.map(e => ({
-						id: '~/.sidex/rules/' + e.name,
+						id: '~/.scmcode/rules/' + e.name,
 						name: e.name.replace(/\.(md|mdc)$/, ''),
 						scope: 'user' as const,
 						enabled: true,
@@ -151,7 +151,7 @@ export class RulesSection implements SettingsSection {
 
 		// Load skills from .sidex/skills/ directory
 		try {
-			const skillsDir = await this._invoke('read_dir', { path: this._workspacePath + '/.sidex/skills' }) as { entries: { name: string; is_dir: boolean }[] } | null;
+			const skillsDir = await this._invoke('read_dir', { path: this._workspacePath + '/.scmcode/skills' }) as { entries: { name: string; is_dir: boolean }[] } | null;
 			if (skillsDir && skillsDir.entries) {
 				this._skills = skillsDir.entries
 					.filter(e => !e.is_dir || e.name !== '__pycache__')
@@ -303,8 +303,8 @@ export class RulesSection implements SettingsSection {
 		const filename = `new-rule-${Date.now()}.md`;
 		const scope = this._activeTab === 'user' ? 'user' : 'project';
 		const parentDir = scope === 'project'
-			? `${this._workspacePath}/.sidex/rules`
-			: `~/.sidex/rules`;
+			? `${this._workspacePath}/.scmcode/rules`
+			: `~/.scmcode/rules`;
 		const path = `${parentDir}/${filename}`;
 
 		const template = `---\ndescription: New rule\nglobs: \n---\n\n# Rule Name\n\nDescribe your rule here.\n`;
@@ -322,7 +322,7 @@ export class RulesSection implements SettingsSection {
 	private _createNewSkill(): void {
 		if (!this._invoke) { return; }
 		const filename = `new-skill-${Date.now()}.md`;
-		const parentDir = `${this._workspacePath}/.sidex/skills`;
+		const parentDir = `${this._workspacePath}/.scmcode/skills`;
 		const path = `${parentDir}/${filename}`;
 
 		const template = `# Skill Name\n\nDescribe what this skill does and when to use it.\n`;

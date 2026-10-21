@@ -410,7 +410,7 @@ fn download_lsp_binary(server_name: &str, url_template: &str) -> Option<String> 
 
     let data_dir = dirs::data_local_dir()?;
     let server_dir = data_dir
-        .join("com.sidex.app")
+        .join("dev.scmcode.app")
         .join("lsp-servers")
         .join(server_name);
     let bin_name = if cfg!(target_os = "windows") {
@@ -1426,7 +1426,7 @@ impl wit_bindings::sidex::extension::host_api::Host for WasmHostState {
     // ── Environment ──────────────────────────────────────────────────────────
 
     fn env_app_name(&mut self) -> String {
-        "SideX".to_string()
+        "scmCode".to_string()
     }
     fn env_app_root(&mut self) -> String {
         std::env::current_exe()
@@ -1799,20 +1799,22 @@ impl WasmHostState {
                 .workspace_folders
                 .first()
                 .map_or_else(|| "file:///tmp".to_string(), |f| format!("file://{f}"));
-            let binary = download_url
-                .as_deref()
-                .and_then(|url| download_lsp_binary(&cmd, url))
-                .or_else(|| {
-                    find_binary(
-                        &cmd,
-                        &[
-                            &format!("/usr/local/bin/{cmd}"),
-                            &format!("/opt/homebrew/bin/{cmd}"),
-                            &format!("/usr/bin/{cmd}"),
-                        ],
-                    )
-                })
-                .ok_or_else(|| format!("lsp: {cmd} binary not found"))?;
+            // scmCode: prefer a locally installed server; only download when
+            // none is found, so no network request is made if it is installed.
+            let binary = find_binary(
+                &cmd,
+                &[
+                    &format!("/usr/local/bin/{cmd}"),
+                    &format!("/opt/homebrew/bin/{cmd}"),
+                    &format!("/usr/bin/{cmd}"),
+                ],
+            )
+            .or_else(|| {
+                download_url
+                    .as_deref()
+                    .and_then(|url| download_lsp_binary(&cmd, url))
+            })
+            .ok_or_else(|| format!("lsp: {cmd} binary not found"))?;
 
             let cargo_dir = env!("CARGO_MANIFEST_DIR");
             let resolved_args: Vec<String> = extra_args

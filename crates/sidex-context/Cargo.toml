@@ -1,6 +1,6 @@
 [package]
 name = "sidex-context"
-description = "AST-based code chunking and context engine for SideX"
+description = "AST-based code chunking and context engine for scmCode"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

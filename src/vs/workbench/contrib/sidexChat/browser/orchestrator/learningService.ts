@@ -27,7 +27,7 @@ interface LearningState {
 
 const MIN_TURNS_BETWEEN_RUNS = 8;
 const MIN_MINUTES_BETWEEN_RUNS = 30;
-const MEMORY_FILE = '.sidex/memory.md';
+const MEMORY_FILE = '.scmcode/memory.md';
 
 export class SidexLearningService extends Disposable {
 	private _state: LearningState = {
@@ -197,7 +197,7 @@ export class SidexLearningService extends Disposable {
 			sections[fact.category]?.push(`- ${fact.content}`);
 		}
 
-		let content = '# Sidex Workspace Memory\n\n';
+		let content = '# scmCode Workspace Memory\n\n';
 		content += '*Auto-generated from chat sessions. Do not edit manually.*\n\n';
 
 		if (sections.preference.length > 0) {

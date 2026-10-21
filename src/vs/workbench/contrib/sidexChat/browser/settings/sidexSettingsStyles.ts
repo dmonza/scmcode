@@ -504,50 +504,6 @@ const SETTINGS_CSS = `
 	background: var(--vscode-progressBar-background, #0078d4);
 	transition: width 0.3s ease;
 }
-.sidex-usage-meter {
-	flex-direction: column;
-	align-items: stretch;
-	gap: 6px;
-}
-.sidex-usage-meter-oneline {
-	flex-direction: row;
-	align-items: center;
-	gap: 10px;
-	min-height: 44px;
-}
-.sidex-usage-meter-bar-inline {
-	flex: 1;
-	min-width: 48px;
-	margin: 0;
-}
-.sidex-usage-meter-top {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	width: 100%;
-}
-.sidex-product-label-row {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	min-width: 0;
-}
-.sidex-product-mark {
-	width: 16px;
-	height: 16px;
-	flex-shrink: 0;
-	color: var(--vscode-foreground, #ccc);
-	display: inline-flex;
-}
-.sidex-product-mark svg {
-	width: 16px;
-	height: 16px;
-	display: block;
-}
-.sidex-product-mark-claude-code {
-	color: #d97757;
-}
 
 /* ============================================================
    MODEL LIST

@@ -283,9 +283,12 @@ impl UpdateManager {
     }
 
     async fn verify_signature(&self, artifact: &Path, url: &str) -> UpdateResult<()> {
+        // scmCode: fail closed. Without a configured public key there is no
+        // way to tell a genuine update from a tampered one, so refuse it.
         let Some(pubkey) = &self.inner.pubkey else {
-            log::warn!("no pubkey configured; skipping signature verification");
-            return Ok(());
+            return Err(UpdateError::SignatureInvalid(
+                "no update public key configured; refusing to install an unverified update".into(),
+            ));
         };
 
         // Our release pipeline publishes `<url>.sig`; fall back gracefully
@@ -349,5 +352,28 @@ impl DownloadObserver for ProgressBridge {
             total_bytes: total,
             start_time: Some(self.start_time),
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn refuses_update_without_pubkey() {
+        let manager = UpdateManager::new(UpdateConfig {
+            endpoints: Vec::new(),
+            pubkey: None,
+            current_version: "0.0.0".into(),
+            cache_dir: std::env::temp_dir(),
+            update_type: UpdateType::Archive,
+            user_agent: "scmCode-test".into(),
+        })
+        .unwrap();
+        // The URL is never fetched: verification must fail before any request.
+        let result = manager
+            .verify_signature(Path::new("artifact"), "http://127.0.0.1:9/artifact")
+            .await;
+        assert!(matches!(result, Err(UpdateError::SignatureInvalid(_))));
     }
 }

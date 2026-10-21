@@ -11,7 +11,7 @@ import (
 
 // UpdateHandler serves desktop release manifests and update artifacts.
 //
-// Releases live in a directory on the API host (default ~/.sidex/releases,
+// Releases live in a directory on the API host (default ~/.scmcode/releases,
 // override with SIDEX_RELEASES_DIR):
 //
 //	releases/
@@ -33,7 +33,7 @@ func NewUpdateHandler() *UpdateHandler {
 	if dir == "" {
 		home, err := os.UserHomeDir()
 		if err == nil {
-			dir = filepath.Join(home, ".sidex", "releases")
+			dir = filepath.Join(home, ".scmcode", "releases")
 		} else {
 			dir = "releases"
 		}

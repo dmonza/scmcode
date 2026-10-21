@@ -404,8 +404,8 @@ type ProviderUsage struct {
 }
 
 // GetProviderBreakdown groups recorded turns by the provider prefix of the
-// model id (`anthropic/…` → anthropic). Used so Settings can show Claude vs
-// Codex spend instead of one blended total.
+// model id (`anthropic/…` → anthropic). Used so Settings can show spend per
+// provider (Anthropic vs OpenAI, …) instead of one blended total.
 func (s *Service) GetProviderBreakdown(userID string, periodStart time.Time) ([]ProviderUsage, error) {
 	models, err := s.GetModelBreakdown(userID, periodStart)
 	if err != nil {

@@ -514,9 +514,10 @@ fn ensure_browser_window(app: &AppHandle, state: &State<'_, BrowserState>) -> Re
         BROWSER_WINDOW_LABEL,
         WebviewUrl::External("about:blank".parse().unwrap()),
     )
-    .title("Sidex Browser")
+    .title("scmCode Browser")
     .inner_size(1280.0, 900.0)
-    .visible(false);
+    .visible(false)
+    .additional_browser_args(super::window::WEBVIEW_BROWSER_ARGS);
 
     #[cfg(target_os = "macos")]
     let builder = builder

@@ -1,6 +1,6 @@
 [package]
 name = "sidex-text"
-description = "Rope-based text buffer for the SideX editor"
+description = "Rope-based text buffer for the scmCode editor"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

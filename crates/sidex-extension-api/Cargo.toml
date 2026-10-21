@@ -1,6 +1,6 @@
 [package]
 name = "sidex-extension-api"
-description = "VS Code extension API compatibility layer for SideX"
+description = "VS Code extension API compatibility layer for scmCode"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

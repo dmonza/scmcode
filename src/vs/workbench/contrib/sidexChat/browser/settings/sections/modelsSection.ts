@@ -1,23 +1,10 @@
 import type { SettingsSection } from '../sidexSettingsPanel.js';
 import { restartServer } from '../../localServer.js';
-import { showConfirmDialog } from '../../components/confirmDialog.js';
-import { createProductMark, productMarkKind } from '../productMarks.js';
 
 type Invoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
 
 interface ProviderModel { id: string; name: string }
 interface LocalServerInfo { provider: string; label: string; baseUrl: string; models: string[] }
-interface AccountInfo {
-	provider: string;
-	displayName: string;
-	available: boolean;
-	expired: boolean;
-	connected: boolean;
-	location: string;
-	credentialKind: string;
-	subscriptionTier: string | null;
-	accountEmail: string | null;
-}
 interface ProviderStatusInfo { id: string; label: string; baseUrl: string; configured: boolean; enabled: boolean; source: string | null; keyless: boolean; envVar: string | null }
 
 // The provider catalogue itself lives in Rust (providers_catalog) — this is
@@ -602,7 +589,7 @@ export class ModelsSection implements SettingsSection {
 
 	/**
 	 * Per-card "pull in this provider's real models" action. `_adoptModelsFrom`
-	 * already does the work (it's also called right after a connect/enable),
+	 * already does the work (it's also called right after an enable),
 	 * but that was the only way to reach it — a provider configured earlier in
 	 * the session, or one whose auto-adopt found nothing the first time, had
 	 * no way to retry. This puts the same helper one click away on every
@@ -649,8 +636,7 @@ export class ModelsSection implements SettingsSection {
 
 	/**
 	 * Everything the app can already reach without the user typing a key:
-	 * loopback model servers, an existing Claude Code / Codex login, and keys
-	 * already exported in their shell.
+	 * loopback model servers and keys already exported in their shell.
 	 */
 	private async _renderDiscoverySection(container: HTMLElement): Promise<void> {
 		container.innerHTML = '';
@@ -664,15 +650,14 @@ export class ModelsSection implements SettingsSection {
 
 		const desc = document.createElement('div');
 		desc.className = 'sidex-settings-row-description sidex-settings-section-desc';
-		desc.textContent = 'Credentials and model servers SideX can use without any setup. No account required.';
+		desc.textContent = 'Credentials and model servers scmCode can use without any setup. No account required.';
 		section.appendChild(desc);
 
 		const card = document.createElement('div');
 		card.className = 'sidex-settings-card';
 
-		const [local, accounts, statuses] = await Promise.all([
+		const [local, statuses] = await Promise.all([
 			this._invoke('providers_detect_local').catch(() => []) as Promise<LocalServerInfo[]>,
-			this._invoke('accounts_list').catch(() => []) as Promise<AccountInfo[]>,
 			this._invoke('providers_status').catch(() => []) as Promise<ProviderStatusInfo[]>,
 		]);
 
@@ -690,77 +675,6 @@ export class ModelsSection implements SettingsSection {
 						? `${count} model${count === 1 ? '' : 's'} at ${server.baseUrl}`
 						: `Running at ${server.baseUrl}, but no models are pulled yet.`));
 			}
-		}
-
-		// --- connect an account you are already signed into ---
-		for (const account of accounts) {
-			const row = document.createElement('div');
-			row.className = 'sidex-settings-row';
-
-			const infoCol = document.createElement('div');
-			infoCol.style.cssText = 'display:flex;flex-direction:column;min-width:0;flex:1;padding-right:16px;';
-
-			const labelRow = document.createElement('div');
-			labelRow.className = 'sidex-product-label-row';
-			const markKind = productMarkKind(account.provider) ?? productMarkKind(account.displayName);
-			if (markKind) {
-				labelRow.appendChild(createProductMark(markKind));
-			}
-			const label = document.createElement('div');
-			label.className = 'sidex-settings-row-label';
-			label.textContent = `${account.displayName} account`;
-			labelRow.appendChild(label);
-			infoCol.appendChild(labelRow);
-
-			const action = document.createElement('button');
-			action.className = 'sidex-settings-btn';
-			action.style.cssText = 'flex-shrink:0;white-space:nowrap;';
-			if (account.connected) {
-				action.textContent = 'Disconnect';
-			} else {
-				action.textContent = 'Connect';
-				action.disabled = !account.available;
-			}
-
-			const sub = document.createElement('div');
-			sub.className = 'sidex-settings-row-description';
-			sub.style.cssText = 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-			const who = account.accountEmail
-				? `${account.accountEmail}${account.subscriptionTier ? ` · ${account.subscriptionTier}` : ''}`
-				: account.subscriptionTier ?? '';
-			if (account.expired) {
-				sub.textContent = `Signed out or expired. Sign in with ${account.displayName} again, then reconnect.`;
-			} else if (account.connected) {
-				sub.textContent = who
-					? `Connected — ${who}`
-					: `Connected — using the login at ${account.location}`;
-			} else if (account.available) {
-				sub.textContent = who
-					? `Signed in as ${who}. Connect to use it for ${account.provider} models.`
-					: `Found at ${account.location}. Connect to use it for ${account.provider} models.`;
-			} else {
-				sub.textContent = `Not signed in to ${account.displayName} on this machine.`;
-			}
-			infoCol.appendChild(sub);
-
-			// A subscription login is issued for that CLI. Say so plainly rather
-			// than letting someone connect it without knowing.
-			if (account.available && account.credentialKind === 'oauth') {
-				const warn = document.createElement('div');
-				warn.className = 'sidex-settings-row-description';
-				warn.style.cssText = 'color:var(--vscode-editorWarning-foreground);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-				warn.textContent = 'Subscription login, not a billed API key.';
-				infoCol.appendChild(warn);
-			}
-			row.appendChild(infoCol);
-			row.appendChild(action);
-
-			if (account.connected || account.available) {
-				action.addEventListener('click', () => {
-					void this._setAccountConnected(account, !account.connected, sub);
-				});
-			}
-			card.appendChild(row);
 		}
 
 		// --- keys already in the environment ---
@@ -789,80 +703,6 @@ export class ModelsSection implements SettingsSection {
 		descEl.textContent = description;
 		row.appendChild(descEl);
 		return row;
-	}
-
-	/**
-	 * Connecting hands another product's credential to the agent, so it asks
-	 * first rather than flipping silently on a single click.
-	 */
-	private async _confirmAccountChange(account: AccountInfo, connect: boolean): Promise<boolean> {
-		if (!connect) {
-			return showConfirmDialog({
-				title: `Disconnect ${account.displayName}?`,
-				body: [
-					`SideX will stop using your ${account.displayName} login for ${account.provider} models.`,
-					'Your login itself is untouched — this only stops SideX reading it.'
-				],
-				confirmLabel: 'Disconnect',
-				danger: true
-			});
-		}
-
-		const who = account.accountEmail ?? 'the account signed in on this machine';
-		const body = [
-			`SideX will use your ${account.displayName} login (${who}) to run ${account.provider} models.`,
-			`The credential is read from ${account.location} and passed only to the agent server running on your own machine. It is never sent anywhere else, and never shown in the app.`
-		];
-
-		return showConfirmDialog({
-			title: `Connect ${account.displayName}?`,
-			body,
-			// A subscription login is issued for that product. Say so before the
-			// user commits, not after.
-			caution: account.credentialKind === 'oauth'
-				? `This is a subscription login, not a billed API key. Using it from another app may not be permitted by ${account.displayName}'s terms — entering an API key above avoids that entirely.`
-				: undefined,
-			confirmLabel: 'Connect'
-		});
-	}
-
-	private async _setAccountConnected(account: AccountInfo, connect: boolean, statusEl: HTMLElement): Promise<void> {
-		if (!this._invoke) { return; }
-
-		if (!await this._confirmAccountChange(account, connect)) { return; }
-
-		statusEl.textContent = connect
-			? `Connecting your ${account.displayName} account…`
-			: `Disconnecting your ${account.displayName} account…`;
-		statusEl.style.color = '';
-
-		try {
-			await this._invoke(connect ? 'accounts_connect' : 'accounts_disconnect', { provider: account.provider });
-			// A freshly connected account is useless without models, so pull in
-			// what it can actually reach before re-rendering. Caught locally,
-			// not by the catch below: a model-listing hiccup right after connect
-			// shouldn't be reported as the connect itself having failed — the
-			// "Import models" action on the card covers retrying it.
-			if (connect) {
-				try {
-					const added = await this._adoptModelsFrom(account.provider);
-					if (added > 0) {
-						statusEl.textContent = `Connected — added ${added} model${added === 1 ? '' : 's'}.`;
-						// Do NOT persist a model here: the user didn't explicitly
-						// choose one. Forcing the first account model into
-						// localStorage pins a stale snapshot ID that survives
-						// future re-fetches. Leave the selection unset so it
-						// re-resolves to whatever the account currently serves.
-					}
-				} catch { /* connected fine; the card's own Import models action can retry */ }
-			}
-			await this._applyCredentialChange();
-		} catch (e) {
-			// Connecting fails when the login is missing or expired; the Rust
-			// side returns a message written for the user, so show it in place.
-			statusEl.textContent = e instanceof Error ? e.message : String(e);
-			statusEl.style.color = 'var(--vscode-editorError-foreground)';
-		}
 	}
 
 	/**
@@ -937,8 +777,8 @@ export class ModelsSection implements SettingsSection {
 		try {
 			await this._invoke('providers_set_enabled', { provider, enabled });
 			if (enabled) {
-				// Best-effort, same as on account connect: the toggle flipping on
-				// is the part that must not fail here, so a model-listing hiccup
+				// Best-effort: the toggle flipping on is the part that must
+				// not fail here, so a model-listing hiccup
 				// (not reachable yet, nothing exposed) is swallowed rather than
 				// reported as "failed to enable". The card's own Import models
 				// action covers retrying it.
@@ -951,27 +791,10 @@ export class ModelsSection implements SettingsSection {
 	/**
 	 * Pull in the models a newly-usable provider actually offers.
 	 *
-	 * Without this the user connects an account and still faces an empty model
+	 * Without this the user enables a provider and still faces an empty model
 	 * list. Only models we don't already know about are added, and they are
 	 * enabled so the provider is usable straight away.
-	 *
-	 * Listing can fail for a subscription login even when chat will work
-	 * (or the other way around). Fall back to the known-good ids for that
-	 * provider so Connect still leaves the picker usable.
 	 */
-	private static readonly FALLBACK_ACCOUNT_MODELS: Record<string, ProviderModel[]> = {
-		anthropic: [
-			{ id: 'anthropic/claude-sonnet-4.6', name: 'Claude Sonnet 4.6' },
-			{ id: 'anthropic/claude-opus-4.6', name: 'Claude Opus 4.6' },
-			{ id: 'anthropic/claude-haiku-4.5', name: 'Claude Haiku 4.5' },
-		],
-		openai: [
-			{ id: 'openai/gpt-5.6-terra', name: 'GPT-5.6 Terra' },
-			{ id: 'openai/gpt-5.5', name: 'GPT-5.5' },
-			{ id: 'openai/gpt-5.4-mini', name: 'GPT-5.4 mini' },
-		],
-	};
-
 	private async _adoptModelsFrom(provider: string): Promise<number> {
 		if (!this._invoke) { return 0; }
 		let models: ProviderModel[] = [];
@@ -979,9 +802,6 @@ export class ModelsSection implements SettingsSection {
 			models = (await this._invoke('providers_list_models', { provider }) as ProviderModel[]) || [];
 		} catch {
 			models = [];
-		}
-		if (models.length === 0) {
-			models = ModelsSection.FALLBACK_ACCOUNT_MODELS[provider] ?? [];
 		}
 		// Record names even for models already known, so a stale entry added by
 		// hand picks up its proper label.

@@ -255,7 +255,7 @@ impl SshConnection {
             .await?;
 
         if check.stdout.trim() == version {
-            log::info!("SideX Server {version} already installed");
+            log::info!("scmCode Server {version} already installed");
             self.state = ConnectionState::Connected;
             return Ok(());
         }
@@ -272,7 +272,7 @@ impl SshConnection {
         };
 
         self.exec_command("mkdir -p ~/.sidex-server").await?;
-        log::info!("installing SideX Server {version} on remote");
+        log::info!("installing scmCode Server {version} on remote");
         self.state = ConnectionState::Connected;
         Ok(())
     }

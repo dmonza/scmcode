@@ -7,13 +7,7 @@ type ProviderConfig struct {
 	Provider string `json:"provider"`
 	APIKey   string `json:"api_key"`
 	BaseURL  string `json:"base_url,omitempty"`
-	// AuthMode is "api_key" (default) or "oauth", for providers where the
-	// credential kind changes the header scheme.
-	AuthMode string `json:"auth_mode,omitempty"`
-	// AccountID is the ChatGPT account UUID from a Codex login. Required
-	// as ChatGPT-Account-ID on the Codex Responses host.
-	AccountID string `json:"account_id,omitempty"`
-	Enabled   bool   `json:"enabled"`
+	Enabled  bool   `json:"enabled"`
 }
 
 // DirectProviders maps provider names that require user-supplied API keys

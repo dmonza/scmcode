@@ -14,7 +14,7 @@
 
 use std::path::PathBuf;
 
-const APP_NAME: &str = "SideX";
+const APP_NAME: &str = "scmCode";
 
 /// Returns the primary application data directory for SideX.
 ///
@@ -103,7 +103,7 @@ fn legacy_app_data_dir() -> Option<PathBuf> {
 ///
 /// Legacy locations checked (in order):
 /// 1. Tauri's `app_data_dir()` path: `~/.local/share/com.siden.sidex/` (Linux)
-/// 2. Old hard-coded path: `~/.sidex/` (all platforms)
+/// 2. Old hard-coded path: `~/.scmcode/` (all platforms)
 ///
 /// Migration is atomic: we rename the entire directory. If the rename fails
 /// (e.g., cross-device), we copy recursively instead.
@@ -157,12 +157,12 @@ pub fn resolve_and_migrate() -> PathBuf {
     new_dir
 }
 
-/// Migrates contents from `~/.sidex/` into the new config directory if
+/// Migrates contents from `~/.scmcode/` into the new config directory if
 /// the old directory exists and contains files not yet present in the
 /// new location.
 fn migrate_dot_sidex_into(new_dir: &std::path::Path) {
     let dot_sidex = match dirs::home_dir() {
-        Some(h) => h.join(".sidex"),
+        Some(h) => h.join(".scmcode"),
         None => return,
     };
 

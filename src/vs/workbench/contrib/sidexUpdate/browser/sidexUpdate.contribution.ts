@@ -14,6 +14,7 @@ import { IWorkbenchContributionsRegistry, Extensions as WorkbenchExtensions } fr
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
 import { IUpdateService, StateType, State } from '../../../../platform/update/common/update.js';
 import { INotificationService, Severity, INotificationHandle } from '../../../../platform/notification/common/notification.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 
 const INITIAL_CHECK_DELAY = 5 * 1000; // Check 5s after startup (Cursor style)
 const RECHECK_INTERVAL = 4 * 60 * 60 * 1000; // Check every 4 hours
@@ -27,10 +28,17 @@ export class SidexUpdateContribution extends Disposable {
 	constructor(
 		@IUpdateService private readonly updateService: IUpdateService,
 		@INotificationService private readonly notificationService: INotificationService,
+		@IConfigurationService configurationService: IConfigurationService,
 	) {
 		super();
 
 		this._register(this.updateService.onStateChange(state => this._onState(state)));
+
+		// scmCode: no background update checks unless the user opted in via
+		// `update.mode` (default 'none'). Manual "Check for Updates..." still works.
+		if (configurationService.getValue<string>('update.mode') === 'none') {
+			return;
+		}
 
 		// Startup check, then periodic recheck.
 		const initial = setTimeout(() => this.updateService.checkForUpdates(false), INITIAL_CHECK_DELAY);
@@ -76,7 +84,7 @@ export class SidexUpdateContribution extends Disposable {
 
 		this._notification = this.notificationService.notify({
 			severity: Severity.Info,
-			message: `An update to SideX ${version} is available.`,
+			message: `An update to scmCode ${version} is available.`,
 			sticky: true,
 			actions: {
 				primary: [
@@ -117,14 +125,14 @@ export class SidexUpdateContribution extends Disposable {
 
 		this._notification = this.notificationService.notify({
 			severity: Severity.Info,
-			message: `SideX ${version} has been successfully downloaded and is ready to install.`,
+			message: `scmCode ${version} has been successfully downloaded and is ready to install.`,
 			sticky: true,
 			actions: {
 				primary: [
 					{
 						id: 'sidex.update.restart',
 						label: 'Restart to Update',
-						tooltip: 'Relaunch SideX to apply the update',
+						tooltip: 'Relaunch scmCode to apply the update',
 						class: undefined,
 						enabled: true,
 						run: () => {

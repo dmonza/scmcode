@@ -20,11 +20,11 @@ pub struct Skill {
     pub path: PathBuf,
 }
 
-/// Load all skills from `.sidex/skills/` in the given project directory.
+/// Load all skills from `.scmcode/skills/` in the given project directory.
 /// Each skill is either a directory containing a `SKILL.md` file, or a
 /// standalone `.md` file directly inside the skills folder.
 pub fn load_skills(project_dir: &Path) -> Vec<Skill> {
-    let skills_dir = project_dir.join(".sidex").join("skills");
+    let skills_dir = project_dir.join(".scmcode").join("skills");
     if !skills_dir.is_dir() {
         return Vec::new();
     }
@@ -160,7 +160,7 @@ mod tests {
     #[test]
     fn test_load_skills_from_dir() {
         let dir = tempfile::tempdir().unwrap();
-        let skills_dir = dir.path().join(".sidex").join("skills");
+        let skills_dir = dir.path().join(".scmcode").join("skills");
         fs::create_dir_all(&skills_dir).unwrap();
 
         fs::write(

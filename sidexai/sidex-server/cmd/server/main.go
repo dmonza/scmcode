@@ -29,15 +29,18 @@ func main() {
 		port = "7433"
 	}
 
-	// Initialize ~/.sidex/ directory structure
+	// Initialize ~/.scmcode/ directory structure
 	if err := paths.EnsureGlobalDirs(); err != nil {
 		log.Fatalf("failed to create sidex home dirs: %v", err)
 	}
 
-	// Begin background model pricing/metadata refresh from OpenRouter
-	cost.Start()
+	// scmCode: live pricing refresh from OpenRouter is opt-in. Without it the
+	// built-in price table is used and no request leaves the machine.
+	if os.Getenv("SIDEX_LIVE_PRICING") == "1" {
+		cost.Start()
+	}
 
-	// Open state database at ~/.sidex/state.db (not in the user's repo)
+	// Open state database at ~/.scmcode/state.db (not in the user's repo)
 	storeDBPath := paths.StateDB()
 	// The state database allows a single writer. A previous instance that is
 	// still shutting down — or one orphaned by a crash — will hold the lock
@@ -167,8 +170,8 @@ func main() {
 
 	listenAddr := bindAddr + ":" + port
 
-	log.Printf("Sidex home: %s", paths.SidexHome())
-	log.Printf("Sidex server listening on %s", listenAddr)
+	log.Printf("scmCode home: %s", paths.SidexHome())
+	log.Printf("scmCode server listening on %s", listenAddr)
 	if err := http.ListenAndServe(listenAddr, cors(r)); err != nil {
 		log.Fatal(err)
 	}

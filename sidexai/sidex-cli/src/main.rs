@@ -12,7 +12,7 @@ use std::time::Instant;
 use tokio_tungstenite::connect_async;
 
 #[derive(Parser)]
-#[command(name = "sidex", version, about = "Sidex AI")]
+#[command(name = "sidex", version, about = "scmCode AI")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -171,7 +171,7 @@ async fn main() {
 
 async fn repl(cfg: &Config) {
     println!();
-    println!("  {}", "Sidex".bold().white());
+    println!("  {}", "scmCode".bold().white());
     println!("  {}", cfg.cwd.display().to_string().dimmed());
     println!();
 

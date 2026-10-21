@@ -158,7 +158,6 @@ func RunLoop(conn Conn, sess *session.Session, aiClient *ai.Client, toolDefs []a
 		executor := NewStreamingExecutor(conn, sess, local, &cfg)
 
 		streamOpts := &ai.StreamOptions{
-			SessionID:         cfg.SessionID,
 			ThinkingBudget:    cfg.ThinkingBudget,
 			Effort:            cfg.Effort,
 			MaxTokensOverride: escalatedMaxTokens,

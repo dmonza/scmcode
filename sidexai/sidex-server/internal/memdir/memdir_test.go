@@ -137,7 +137,7 @@ func TestMigrateFromLegacy(t *testing.T) {
 	projectDir := t.TempDir()
 
 	// Create legacy memory file in the project repo
-	legacyDir := filepath.Join(projectDir, ".sidex", "memory")
+	legacyDir := filepath.Join(projectDir, ".scmcode", "memory")
 	os.MkdirAll(legacyDir, 0755)
 	legacyContent := "## old_memory\n\n**Category**: project\n**Updated**: 2026-01-01 00:00\n\nlegacy value\n"
 	os.WriteFile(filepath.Join(legacyDir, "MEMORY.md"), []byte(legacyContent), 0644)

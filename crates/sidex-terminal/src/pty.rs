@@ -233,7 +233,7 @@ fn home_dir_string() -> Option<String> {
 fn setup_environment(cmd: &mut CommandBuilder, extra_env: &HashMap<String, String>) {
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
-    cmd.env("TERM_PROGRAM", "SideX");
+    cmd.env("TERM_PROGRAM", "scmCode");
 
     if cfg!(target_os = "windows") {
         for key in [

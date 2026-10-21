@@ -394,7 +394,7 @@ pub fn resolve_node_runtime(app: &AppHandle) -> Result<ResolvedNode, String> {
         }
     }
 
-    Err("Node runtime not found. Bundle Node with SideX or install Node.js (>=18).".into())
+    Err("Node runtime not found. Bundle Node with scmCode or install Node.js (>=18).".into())
 }
 
 fn extension_source(app: &AppHandle, path: &Path) -> (String, bool) {
@@ -665,7 +665,7 @@ pub fn build_init_data(
                 .unwrap_or_else(|_| PathBuf::from("."))
                 .to_string_lossy()
                 .to_string(),
-            app_name: "SideX".to_string(),
+            app_name: "scmCode".to_string(),
             app_host: "desktop".to_string(),
             app_uri_scheme: "sidex".to_string(),
             app_language: "en".to_string(),

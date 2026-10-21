@@ -1,6 +1,6 @@
 [package]
 name = "sidex-update"
-description = "Native update manager for SideX with VS Code-parity state machine."
+description = "Native update manager for scmCode with VS Code-parity state machine."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

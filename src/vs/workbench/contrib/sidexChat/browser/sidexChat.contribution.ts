@@ -27,12 +27,12 @@ import './sidexChatService.js';
 export const SIDEX_CHAT_CONTAINER_ID = 'workbench.view.sidexChat';
 export const SIDEX_CHAT_VIEW_ID = 'workbench.view.sidexChat.main';
 
-const sidexChatIcon = registerIcon('sidex-chat-icon', Codicon.commentDiscussion, nls.localize('sidexChatIcon', 'Sidex icon'));
+const sidexChatIcon = registerIcon('sidex-chat-icon', Codicon.commentDiscussion, nls.localize('sidexChatIcon', 'scmCode icon'));
 
 const viewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry).registerViewContainer(
 	{
 		id: SIDEX_CHAT_CONTAINER_ID,
-		title: nls.localize2('sidex', 'Sidex'),
+		title: nls.localize2('sidex', 'scmCode'),
 		icon: sidexChatIcon,
 		ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [SIDEX_CHAT_CONTAINER_ID, { mergeViewWithContainerWhenSingleView: true }]),
 		hideIfEmpty: false,
@@ -46,7 +46,7 @@ Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews(
 	[
 		{
 			id: SIDEX_CHAT_VIEW_ID,
-			name: nls.localize2('sidex', 'Sidex'),
+			name: nls.localize2('sidex', 'scmCode'),
 			containerIcon: sidexChatIcon,
 			ctorDescriptor: new SyncDescriptor(SidexChatViewPane),
 			canToggleVisibility: false,
@@ -62,7 +62,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'workbench.action.toggleSidexChat',
-			title: nls.localize2('toggleSidex', 'Toggle Sidex'),
+			title: nls.localize2('toggleSidex', 'Toggle scmCode'),
 			keybinding: {
 				primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyI,
 				weight: KeybindingWeight.WorkbenchContrib,
@@ -81,7 +81,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'workbench.action.sidexStatusBarToggle',
-			title: nls.localize2('sidexStatusBarToggle', 'Toggle Sidex'),
+			title: nls.localize2('sidexStatusBarToggle', 'Toggle scmCode'),
 		});
 	}
 	async run(accessor: ServicesAccessor): Promise<void> {
@@ -110,9 +110,9 @@ class SidexStatusBarContribution implements IWorkbenchContribution {
 		// Sidex panel toggle (far right)
 		const sidexEntry = statusbarService.addEntry(
 			{
-				name: nls.localize('sidexToggle', 'Sidex'),
+				name: nls.localize('sidexToggle', 'scmCode'),
 				text: this._sidexIcon(),
-				ariaLabel: nls.localize('toggleSidex', 'Toggle Sidex'),
+				ariaLabel: nls.localize('toggleSidex', 'Toggle scmCode'),
 				command: 'workbench.action.sidexStatusBarToggle',
 				tooltip: this._sidexTooltip(),
 			},
@@ -138,9 +138,9 @@ class SidexStatusBarContribution implements IWorkbenchContribution {
 		// Update icons when visibility changes
 		const update = () => {
 			sidexEntry.update({
-				name: nls.localize('sidexToggle', 'Sidex'),
+				name: nls.localize('sidexToggle', 'scmCode'),
 				text: this._sidexIcon(),
-				ariaLabel: nls.localize('toggleSidex', 'Toggle Sidex'),
+				ariaLabel: nls.localize('toggleSidex', 'Toggle scmCode'),
 				command: 'workbench.action.sidexStatusBarToggle',
 				tooltip: this._sidexTooltip(),
 			});
@@ -167,7 +167,7 @@ class SidexStatusBarContribution implements IWorkbenchContribution {
 	}
 
 	private _sidexTooltip(): string {
-		return this.layoutService.isVisible(Parts.SIDEX_PART) ? 'Hide Sidex' : 'Show Sidex';
+		return this.layoutService.isVisible(Parts.SIDEX_PART) ? 'Hide scmCode' : 'Show scmCode';
 	}
 
 	private _auxIcon(): string {
@@ -198,7 +198,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'sidex.inlineEdit.activate',
-			title: nls.localize2('sidexInlineEdit', 'Sidex: Inline Edit'),
+			title: nls.localize2('sidexInlineEdit', 'scmCode: Inline Edit'),
 			keybinding: {
 				primary: KeyMod.CtrlCmd | KeyCode.KeyK,
 				weight: KeybindingWeight.EditorContrib + 100,

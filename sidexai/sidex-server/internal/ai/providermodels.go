@@ -19,7 +19,7 @@ type RemoteModel struct {
 
 // ConfiguredLocalProviders returns every provider the desktop app handed us
 // via SIDEX_PROVIDER_* env vars. The picker uses this instead of a hardcoded
-// catalog — Claude Code, Codex, Ollama, etc. each advertise their own list.
+// catalog — Anthropic, OpenAI, Ollama, etc. each advertise their own list.
 func ConfiguredLocalProviders() []ProviderConfig {
 	seen := make(map[string]struct{})
 	var out []ProviderConfig
@@ -46,7 +46,7 @@ func ConfiguredLocalProviders() []ProviderConfig {
 			continue
 		}
 		rest := strings.TrimPrefix(key, envProviderPrefix)
-		for _, suf := range []string{envKeySuffix, envBaseURLSuffix, envAuthModeSuffix, envAccountIDSuffix} {
+		for _, suf := range []string{envKeySuffix, envBaseURLSuffix} {
 			if strings.HasSuffix(rest, suf) {
 				add(strings.TrimSuffix(rest, suf))
 				break
@@ -68,9 +68,6 @@ func ListRemoteModels(cfg ProviderConfig) ([]RemoteModel, error) {
 	}
 
 	url := strings.TrimRight(cfg.BaseURL, "/") + "/models"
-	if isCodexHost(cfg) {
-		url += "?client_version=" + resolvedCodexClientVersion()
-	}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -95,25 +92,12 @@ func ListRemoteModels(cfg ProviderConfig) ([]RemoteModel, error) {
 	return parseProviderModelList(cfg.Provider, raw)
 }
 
-func isCodexHost(cfg ProviderConfig) bool {
-	return cfg.Provider == "openai" && cfg.AuthMode == AuthModeOAuth &&
-		(strings.Contains(cfg.BaseURL, "chatgpt.com") || strings.Contains(cfg.BaseURL, "backend-api/codex"))
-}
-
 func applyListHeaders(req *http.Request, cfg ProviderConfig) {
 	if cfg.Provider == "anthropic" {
 		req.Header.Set("anthropic-version", anthropicVersion)
-		if cfg.AuthMode == AuthModeOAuth && cfg.APIKey != "" {
-			applyClaudeCodeIdentity(req, cfg.APIKey, "")
-			return
-		}
 		if cfg.APIKey != "" {
 			req.Header.Set("x-api-key", cfg.APIKey)
 		}
-		return
-	}
-	if isCodexHost(cfg) {
-		applyCodexIdentity(req, cfg.APIKey, cfg.AccountID)
 		return
 	}
 	if cfg.APIKey != "" {

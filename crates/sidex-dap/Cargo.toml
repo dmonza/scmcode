@@ -1,6 +1,6 @@
 [package]
 name = "sidex-dap"
-description = "Debug Adapter Protocol client for SideX"
+description = "Debug Adapter Protocol client for scmCode"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

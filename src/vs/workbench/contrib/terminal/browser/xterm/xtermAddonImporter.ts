@@ -70,7 +70,7 @@ export class XtermAddonImporter {
 						break;
 				}
 			} catch (e) {
-				console.warn(`[SideX] Failed to load xterm addon '${name}':`, e);
+				console.warn(`[scmCode] Failed to load xterm addon '${name}':`, e);
 				throw new Error(`Could not load addon ${name}`);
 			}
 			if (!addon) {

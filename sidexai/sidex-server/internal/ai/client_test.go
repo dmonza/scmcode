@@ -15,11 +15,22 @@ func TestNewClientWithoutOpenRouterKey(t *testing.T) {
 	if c.apiKey != "" {
 		t.Fatalf("expected empty apiKey when OPENROUTER_API_KEY is unset, got %q", c.apiKey)
 	}
-	if c.baseURL == "" {
-		t.Fatalf("expected a default baseURL even without an API key")
-	}
 	if c.model == "" {
 		t.Fatalf("expected a default model even without an API key")
+	}
+}
+
+// scmCode: with no OPENROUTER_BASE_URL there is no implicit endpoint, and a
+// request through the default client fails locally instead of going out.
+func TestNewClientHasNoImplicitEndpoint(t *testing.T) {
+	t.Setenv("OPENROUTER_BASE_URL", "")
+	c := NewClient()
+	if c.baseURL != "" {
+		t.Fatalf("expected no default baseURL, got %q", c.baseURL)
+	}
+	err := c.StreamChat([]Message{{Role: RoleUser, Content: "hi"}}, nil, "", func(StreamChunk) {})
+	if err != ErrNoProvider {
+		t.Fatalf("expected ErrNoProvider, got %v", err)
 	}
 }
 

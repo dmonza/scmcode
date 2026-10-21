@@ -3836,7 +3836,7 @@ function createVscodeShim() {
     let _logLevel = 2;
     let _clipboardText = '';
     return {
-      appName: 'SideX',
+      appName: 'scmCode',
       appRoot: process.cwd(),
       appHost: 'desktop',
       language: 'en',

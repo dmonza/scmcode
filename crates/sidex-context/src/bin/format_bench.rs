@@ -1,7 +1,7 @@
 use std::fmt::Write as FmtWrite;
 
 fn main() {
-    println!("=== SideX Token Efficiency & Accuracy Benchmark ===\n");
+    println!("=== scmCode Token Efficiency & Accuracy Benchmark ===\n");
 
     let search_results = generate_search_results(50);
     let file_tree = generate_file_tree(20);

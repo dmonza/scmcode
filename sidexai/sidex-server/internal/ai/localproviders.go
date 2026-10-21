@@ -13,16 +13,14 @@ import (
 //
 //	SIDEX_PROVIDER_<PROVIDER>_KEY       e.g. SIDEX_PROVIDER_ANTHROPIC_KEY
 //	SIDEX_PROVIDER_<PROVIDER>_BASE_URL  e.g. SIDEX_PROVIDER_OLLAMA_BASE_URL
-//	SIDEX_PROVIDER_<PROVIDER>_AUTH      "api_key" (default) or "oauth"
 //
+// The key is always a provider API key (or empty, for a loopback server).
 // See src-tauri/src/commands/providers.rs for the resolution order that
 // decides what ends up here.
 const (
-	envProviderPrefix  = "SIDEX_PROVIDER_"
-	envKeySuffix       = "_KEY"
-	envBaseURLSuffix   = "_BASE_URL"
-	envAuthModeSuffix  = "_AUTH"
-	envAccountIDSuffix = "_ACCOUNT_ID"
+	envProviderPrefix = "SIDEX_PROVIDER_"
+	envKeySuffix      = "_KEY"
+	envBaseURLSuffix  = "_BASE_URL"
 )
 
 func envProviderVar(provider, suffix string) string {
@@ -54,18 +52,11 @@ func LocalProviderConfig(provider string) (ProviderConfig, bool) {
 		return ProviderConfig{}, false
 	}
 
-	authMode := strings.TrimSpace(os.Getenv(envProviderVar(provider, envAuthModeSuffix)))
-	if authMode == "" {
-		authMode = AuthModeAPIKey
-	}
-
 	return ProviderConfig{
-		Provider:  provider,
-		APIKey:    apiKey,
-		BaseURL:   strings.TrimRight(baseURL, "/"),
-		AuthMode:  authMode,
-		AccountID: strings.TrimSpace(os.Getenv(envProviderVar(provider, envAccountIDSuffix))),
-		Enabled:   true,
+		Provider: provider,
+		APIKey:   apiKey,
+		BaseURL:  strings.TrimRight(baseURL, "/"),
+		Enabled:  true,
 	}, true
 }
 

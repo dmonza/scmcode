@@ -21,7 +21,7 @@ export class ExtHostManagedSockets implements IExtHostManagedSockets {
 	setFactory(_socketFactoryId: number, _makeConnection: () => Thenable<vscode.ManagedMessagePassing>): void {}
 
 	async $openRemoteSocket(_socketFactoryId: number): Promise<number> {
-		throw new Error('Managed sockets are not supported in SideX');
+		throw new Error('Managed sockets are not supported in scmCode');
 	}
 	$remoteSocketWrite(_socketId: number, _buffer: VSBuffer): void {}
 	$remoteSocketEnd(_socketId: number): void {}

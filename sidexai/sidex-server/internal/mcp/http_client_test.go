@@ -493,7 +493,7 @@ func TestManagerLazyLoad(t *testing.T) {
 
 func TestConfigHTTPServer(t *testing.T) {
 	dir := t.TempDir()
-	sidexDir := dir + "/.sidex"
+	sidexDir := dir + "/.scmcode"
 	os.MkdirAll(sidexDir, 0o755)
 
 	configJSON := `{

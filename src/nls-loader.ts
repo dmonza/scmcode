@@ -64,22 +64,22 @@ const sidexTranslations: Record<string, Translations> = {
 
 export async function loadNlsMessages(): Promise<void> {
 	const locale = localStorage.getItem('vscode.nls.locale');
-	console.log('[SideX NLS] locale from localStorage:', locale);
+	console.log('[scmCode NLS] locale from localStorage:', locale);
 
 	if (!locale || locale.toLowerCase().startsWith('en')) {
 		return;
 	}
 
 	let extensionId = localStorage.getItem('vscode.nls.languagePackExtensionId');
-	console.log('[SideX NLS] extensionId from localStorage:', extensionId);
+	console.log('[scmCode NLS] extensionId from localStorage:', extensionId);
 
 	if (!extensionId) {
 		extensionId = await detectInstalledLanguagePack(locale);
 		if (extensionId) {
 			localStorage.setItem('vscode.nls.languagePackExtensionId', extensionId);
-			console.log('[SideX NLS] auto-detected language pack:', extensionId);
+			console.log('[scmCode NLS] auto-detected language pack:', extensionId);
 		} else {
-			console.warn('[SideX NLS] No language pack found for locale:', locale);
+			console.warn('[scmCode NLS] No language pack found for locale:', locale);
 			return;
 		}
 	}
@@ -88,7 +88,7 @@ export async function loadNlsMessages(): Promise<void> {
 		const translations = (await loadFromDisk(extensionId)) ?? (await loadFromGallery(extensionId));
 
 		if (!translations) {
-			console.warn('[SideX NLS] No translations found for', extensionId);
+			console.warn('[scmCode NLS] No translations found for', extensionId);
 			return;
 		}
 
@@ -110,7 +110,7 @@ export async function loadNlsMessages(): Promise<void> {
 				if (nlsEntries.length > 0) {
 					(globalThis as any)._VSCODE_NLS_MESSAGES = nlsEntries.map(({ key, msg }) => translations[key] ?? msg);
 					(globalThis as any)._VSCODE_NLS_LANGUAGE = locale;
-					console.log(`[SideX NLS] Loaded ${nlsEntries.length} translations for ${locale} (indexed mode)`);
+					console.log(`[scmCode NLS] Loaded ${nlsEntries.length} translations for ${locale} (indexed mode)`);
 					return;
 				}
 			}
@@ -118,9 +118,9 @@ export async function loadNlsMessages(): Promise<void> {
 
 		(globalThis as any)._VSCODE_NLS_TRANSLATIONS = translations;
 		(globalThis as any)._VSCODE_NLS_LANGUAGE = locale;
-		console.log(`[SideX NLS] Loaded ${Object.keys(translations).length} translations for ${locale} (key mode)`);
+		console.log(`[scmCode NLS] Loaded ${Object.keys(translations).length} translations for ${locale} (key mode)`);
 	} catch (e) {
-		console.warn('[SideX NLS] Failed to load translations:', e);
+		console.warn('[scmCode NLS] Failed to load translations:', e);
 	}
 }
 
@@ -136,11 +136,11 @@ async function loadFromDisk(extensionId: string): Promise<Translations | null> {
 			return null;
 		}
 
-		const path = `${homedir}/.sidex/extensions/${extensionId}/translations/main.i18n.json`;
+		const path = `${homedir}/.scmcode/extensions/${extensionId}/translations/main.i18n.json`;
 		const raw = await invoke<string>('read_file', { path });
 		const result = parseBundle(raw);
 		if (result) {
-			console.log(`[SideX NLS] Loaded translations from disk: ${path}`);
+			console.log(`[scmCode NLS] Loaded translations from disk: ${path}`);
 		}
 		return result;
 	} catch {
@@ -154,10 +154,7 @@ async function loadFromGallery(extensionId: string): Promise<Translations | null
 		return null;
 	}
 
-	const urls = [
-		`https://marketplace.siden.ai/api/gallery/publishers/${publisher}/vsextensions/${name}/latest/vspackage`,
-		`https://open-vsx.org/api/${publisher}/${name}/latest`
-	];
+	const urls = [`https://open-vsx.org/api/${publisher}/${name}/latest`];
 
 	for (const metaUrl of urls) {
 		try {
@@ -170,7 +167,7 @@ async function loadFromGallery(extensionId: string): Promise<Translations | null
 			if (res.ok) {
 				const result = parseBundle(await res.text());
 				if (result) {
-					console.log(`[SideX NLS] Loaded translations from gallery`);
+					console.log(`[scmCode NLS] Loaded translations from gallery`);
 					return result;
 				}
 			}
@@ -227,7 +224,7 @@ async function detectInstalledLanguagePack(locale: string): Promise<string | nul
 		if (!homedir) {
 			return null;
 		}
-		const path = `${homedir}/.sidex/extensions/${knownId}/translations/main.i18n.json`;
+		const path = `${homedir}/.scmcode/extensions/${knownId}/translations/main.i18n.json`;
 		await invoke<string>('read_file', { path });
 		return knownId;
 	} catch {

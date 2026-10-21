@@ -493,8 +493,8 @@ export class SidexSettingsPanel extends Disposable {
 			case 'marketplace': break;
 				break;
 			case 'docs':
-				// The old docs subdomain is dead and no replacement is hosted yet; the README is the real docs entry point.
-				window.open('https://github.com/Sidenai/sidex#readme', '_blank');
+				// No docs site is hosted yet; the README is the real docs entry point.
+				window.open('https://github.com/dmonza/scmcode#readme', '_blank');
 				break;
 		}
 	}

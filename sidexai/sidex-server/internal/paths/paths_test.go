@@ -50,7 +50,7 @@ func TestSidexHomeDefault(t *testing.T) {
 	os.Unsetenv("SIDEX_HOME")
 	home, _ := os.UserHomeDir()
 	got := SidexHome()
-	want := filepath.Join(home, ".sidex")
+	want := filepath.Join(home, ".scmcode")
 	if got != want {
 		t.Errorf("SidexHome() = %q, want %q", got, want)
 	}

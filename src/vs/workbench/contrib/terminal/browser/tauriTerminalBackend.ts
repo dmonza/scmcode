@@ -52,7 +52,7 @@ async function ensureTauri(): Promise<boolean> {
 		_listen = events.listen as typeof _listen;
 		return true;
 	} catch (e) {
-		console.error('[SideX Terminal] Failed to load Tauri APIs:', e);
+		console.error('[scmCode Terminal] Failed to load Tauri APIs:', e);
 		return false;
 	}
 }
@@ -134,7 +134,7 @@ class TauriPty extends Disposable implements ITerminalChildProcess {
 			}
 			envToPass['TERM'] = 'xterm-256color';
 			envToPass['COLORTERM'] = 'truecolor';
-			envToPass['TERM_PROGRAM'] = 'SideX';
+			envToPass['TERM_PROGRAM'] = 'scmCode';
 			if (!envToPass['LANG']) {
 				envToPass['LANG'] = 'en_US.UTF-8';
 			}
@@ -204,7 +204,7 @@ class TauriPty extends Disposable implements ITerminalChildProcess {
 
 			return undefined;
 		} catch (e: any) {
-			console.error('[SideX Terminal] Failed to spawn:', e);
+			console.error('[scmCode Terminal] Failed to spawn:', e);
 			return { message: e?.message || 'Failed to spawn terminal' };
 		}
 	}

@@ -109,7 +109,7 @@ export class InlineEditController extends Disposable {
 			this._showInlineDiff(model);
 		} catch (err) {
 			this._inputWidget.setLoading(false);
-			console.error('[Sidex InlineEdit] Error:', err);
+			console.error('[scmCode InlineEdit] Error:', err);
 		}
 	}
 

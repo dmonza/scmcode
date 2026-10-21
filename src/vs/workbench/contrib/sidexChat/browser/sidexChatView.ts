@@ -108,18 +108,8 @@ export class SidexChatViewPane extends ViewPane {
 		this._welcomeEl = DOM.append(this._messagesEl, $('div.sc-welcome'));
 
 		const logoSvg = `<svg class="sc-welcome-logo" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-<defs>
-  <clipPath id="sx_holes">
-    <path d="M0 0h150v150H0z M37.5 62.5h25v25h-25z M87.5 62.5h25v25h-25z" clip-rule="evenodd"/>
-  </clipPath>
-</defs>
-<g clip-path="url(#sx_holes)">
-  <rect x="0" y="0" width="50" height="50" fill="currentColor"/>
-  <rect x="100" y="0" width="50" height="50" fill="currentColor"/>
-  <rect x="25" y="50" width="50" height="50" fill="currentColor"/>
-  <rect x="75" y="50" width="50" height="50" fill="currentColor"/>
-  <rect x="50" y="100" width="50" height="50" fill="currentColor"/>
-</g>
+<path d="M75 10 L130 30 V74 C130 109 107 135 75 146 C43 135 20 109 20 74 V30 Z" stroke="currentColor" stroke-width="9" stroke-linejoin="round"/>
+<path d="M62 58 L45 76 L62 94 M88 58 L105 76 L88 94" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
 		this._welcomeEl.innerHTML = logoSvg;
@@ -778,11 +768,9 @@ export class SidexChatViewPane extends ViewPane {
 		row1.appendChild(icon);
 		const title = document.createElement('span');
 		title.className = 'sc-error-banner-title';
-		title.textContent = text.includes('usage cap') || text.includes('Anthropic returned 429')
-			? 'Claude usage limit'
-			: text.includes('Anthropic blocked') || text.includes('Anthropic refused')
-				? 'Anthropic blocked this login'
-				: 'Unable to reach model';
+		title.textContent = text.includes('Anthropic returned 429')
+			? 'Anthropic rate limit'
+			: 'Unable to reach model';
 		row1.appendChild(title);
 		banner.appendChild(row1);
 

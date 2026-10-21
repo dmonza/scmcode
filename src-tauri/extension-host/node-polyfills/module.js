@@ -73,7 +73,7 @@ class Module {
       module.exports = JSON.parse(content);
     },
     '.node': function () {
-      throw new Error('.node native addons are not supported in SideX polyfill');
+      throw new Error('.node native addons are not supported in scmCode polyfill');
     },
   };
 

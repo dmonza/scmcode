@@ -682,8 +682,7 @@ export class SidexChatService extends Disposable implements ISidexChatService {
 
 		// Tool routing lives in the server system prompt (LocalExec). Putting it
 		// in the user turn as <system_instruction> makes Claude treat it as an
-		// injected fake system block and ignore it — especially on a Claude Code
-		// login, whose first system block is "You are Claude Code".
+		// injected fake system block and ignore it.
 		const messageText = contextPrefix + recentEditContext + text;
 
 		const payload = {
@@ -2072,17 +2071,16 @@ ${prompt}`,
 				}
 			}
 
-			// The server list is live from each connected provider (Claude,
-			// Codex, Ollama, …). Do not filter it down to a hardcoded ID
+			// The server list is live from each configured provider (Anthropic,
+			// OpenAI, Ollama, …). Do not filter it down to a hardcoded ID
 			// allowlist — that hides new snapshots the moment a provider
 			// ships them. Custom IDs the user typed are already merged above.
 			this._availableModels = models;
 			this._onDidChangeModels.fire(this._availableModels);
 
 		// Keep the user's pick when it is still in the live list. Anthropic
-		// returns Opus first; blindly adopting that on every fetch is how a
-		// connected Claude login ends up on a model the current window has
-		// already exhausted.
+		// returns Opus first; blindly adopting that on every fetch would
+		// silently switch the user to the most expensive model.
 		const effective = this._availableModels;
 		const stillOffered = effective.some(m => m.id === this._serverModel);
 		if (!stillOffered && effective.length > 0) {

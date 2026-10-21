@@ -715,7 +715,7 @@ export class ChatInput extends Component {
 
 		// Flat, borderless button acting as the dropdown trigger
 		const localBtn = DOM.append(tray, $('button.sc-tray-btn'));
-		localBtn.title = 'SideX Environment Connection Mode';
+		localBtn.title = 'scmCode Environment Connection Mode';
 		localBtn.innerHTML = `
 			<svg class="sc-tray-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 				<path d="M5.270 3.041 C 4.702 3.138,4.154 3.442,3.728 3.898 C 3.450 4.195,3.248 4.538,3.114 4.940 L 3.020 5.220 3.009 10.607 L 2.998 15.994 2.249 16.007 C 1.531 16.019,1.494 16.024,1.355 16.118 C 1.276 16.172,1.168 16.278,1.115 16.355 C 1.020 16.494,1.020 16.500,1.020 17.617 C 1.020 18.681,1.025 18.756,1.113 19.040 C 1.256 19.498,1.455 19.822,1.816 20.184 C 2.178 20.545,2.502 20.744,2.960 20.887 L 3.260 20.980 12.000 20.980 L 20.740 20.980 21.040 20.887 C 21.498 20.744,21.822 20.545,22.184 20.184 C 22.545 19.822,22.744 19.498,22.887 19.040 C 22.975 18.756,22.980 18.681,22.980 17.613 C 22.980 16.349,22.993 16.409,22.664 16.142 L 22.513 16.020 21.757 16.007 L 21.002 15.994 20.991 10.607 L 20.980 5.220 20.886 4.940 C 20.605 4.098,19.928 3.409,19.109 3.131 L 18.780 3.020 12.120 3.014 C 8.457 3.011,5.375 3.023,5.270 3.041 M18.760 4.623 C 19.052 4.758,19.225 4.929,19.365 5.220 L 19.480 5.460 19.480 10.730 L 19.480 16.000 12.000 16.000 L 4.520 16.000 4.520 10.730 L 4.521 5.460 4.623 5.240 C 4.758 4.948,4.929 4.775,5.220 4.635 L 5.460 4.520 12.000 4.520 L 18.540 4.521 18.760 4.623 M21.480 18.030 C 21.480 18.508,21.473 18.555,21.366 18.782 C 21.226 19.076,20.954 19.327,20.667 19.428 C 20.470 19.497,20.050 19.500,12.000 19.500 C 3.950 19.500,3.530 19.497,3.333 19.428 C 3.046 19.327,2.774 19.076,2.634 18.782 C 2.527 18.555,2.520 18.508,2.520 18.030 L 2.520 17.520 12.000 17.520 L 21.480 17.520 21.480 18.030 " stroke="none" fill-rule="evenodd" fill="currentColor"></path>
@@ -1265,7 +1265,7 @@ export class ChatInput extends Component {
 			const home = osInfo?.homedir;
 			const workspace = this._chatService.workspacePath || 'default';
 			if (!home) { return null; }
-			const assetsDir = `${home}/.sidex/projects/${this._workspaceSlug(workspace)}/assets`;
+			const assetsDir = `${home}/.scmcode/projects/${this._workspaceSlug(workspace)}/assets`;
 			await invoke('mkdir', { path: assetsDir, recursive: true });
 			const sourceName = file.name || `dropped-${Date.now()}`;
 			const assetPath = `${assetsDir}/${crypto.randomUUID()}${this._extension(sourceName)}`;
@@ -1316,7 +1316,7 @@ export class ChatInput extends Component {
 		if (this._attachments.length === 0) { return ''; }
 		const lines = [
 			'<attachments>',
-			'The user attached these local files. They were copied into the SideX project assets directory. Use read_file before making claims about their contents; read_file supports both text/code files and image files.',
+			'The user attached these local files. They were copied into the scmCode project assets directory. Use read_file before making claims about their contents; read_file supports both text/code files and image files.',
 		];
 		for (const attachment of this._attachments) {
 			lines.push(`- ${attachment.kind}: ${attachment.path} (name: ${attachment.name}, original: ${attachment.originalPath}, use read_file)`);
@@ -1334,7 +1334,7 @@ export class ChatInput extends Component {
 			const workspace = this._chatService.workspacePath || 'default';
 			if (!home) { return sourcePath; }
 
-			const assetsDir = `${home}/.sidex/projects/${this._workspaceSlug(workspace)}/assets`;
+			const assetsDir = `${home}/.scmcode/projects/${this._workspaceSlug(workspace)}/assets`;
 			await invoke('mkdir', { path: assetsDir, recursive: true });
 
 			const assetPath = `${assetsDir}/${crypto.randomUUID()}${this._extension(sourcePath)}`;

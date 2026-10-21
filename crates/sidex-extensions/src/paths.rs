@@ -12,7 +12,7 @@ use std::path::PathBuf;
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 
-const APP_NAME: &str = "SideX";
+const APP_NAME: &str = "scmCode";
 
 /// Root `SideX` config directory following platform conventions.
 ///
@@ -58,7 +58,7 @@ pub fn sidex_config_dir() -> PathBuf {
 
 /// Root `SideX` data directory (backward-compatible alias).
 ///
-/// Previously this was hard-coded to `~/.sidex`. Now it returns the
+/// Previously this was hard-coded to `~/.scmcode`. Now it returns the
 /// platform-appropriate config directory.
 pub fn sidex_data_dir() -> PathBuf {
     sidex_config_dir()

@@ -36,7 +36,7 @@ func MinimalSystemPrompt(in Input) string {
 		cwdLine = "(no workspace open — ask user to open a folder before making file changes)"
 	}
 
-	return fmt.Sprintf(`You are Sidex, an AI coding agent in the Sidex IDE. You have filesystem tools to read, write, search, and run commands.
+	return fmt.Sprintf(`You are scmCode, an AI coding agent in the scmCode IDE. You have filesystem tools to read, write, search, and run commands.
 
 Working directory: %s
 Platform: %s

@@ -16,7 +16,7 @@ const (
 )
 
 // Deprecated paths (kept for migration only)
-const legacyMemoryDir = ".sidex/memory"
+const legacyMemoryDir = ".scmcode/memory"
 const legacyEntrypointFile = "MEMORY.md"
 
 // MemoryEntry represents a single memory from the filesystem.
@@ -28,14 +28,14 @@ type MemoryEntry struct {
 	ModTime  time.Time
 }
 
-// EnsureDir creates the project state directory in ~/.sidex/projects/<slug>/.
+// EnsureDir creates the project state directory in ~/.scmcode/projects/<slug>/.
 func EnsureDir(projectDir string) error {
 	return paths.EnsureProjectDirs(projectDir)
 }
 
 // LoadMemoryPrompt reads the memory file and builds a prompt section
 // containing all memories. This is injected into the system prompt.
-// Memory is stored at ~/.sidex/projects/<slug>/memory.md, NOT in the user's repo.
+// Memory is stored at ~/.scmcode/projects/<slug>/memory.md, NOT in the user's repo.
 func LoadMemoryPrompt(projectDir string) string {
 	entrypoint := paths.ProjectMemoryMD(projectDir)
 
@@ -67,7 +67,7 @@ func LoadMemoryPrompt(projectDir string) string {
 	return fmt.Sprintf("# Project Memory\n\nThe following memories are from previous sessions. Trust them as useful context but verify before acting on anything consequential.\n\n%s", body)
 }
 
-// SaveMemory writes a memory entry. Stored at ~/.sidex/projects/<slug>/memory.md.
+// SaveMemory writes a memory entry. Stored at ~/.scmcode/projects/<slug>/memory.md.
 func SaveMemory(projectDir, key, value, category string) error {
 	if err := paths.EnsureProjectDirs(projectDir); err != nil {
 		return err

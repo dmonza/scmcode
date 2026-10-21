@@ -603,7 +603,7 @@ pub fn term_spawn(
     // Set environment variables
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
-    cmd.env("TERM_PROGRAM", "SideX");
+    cmd.env("TERM_PROGRAM", "scmCode");
     cmd.env("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION"));
 
     // Copy essential environment (platform-aware)

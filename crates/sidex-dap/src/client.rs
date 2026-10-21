@@ -191,7 +191,7 @@ impl DebugClient {
     async fn initialize(&self) -> Result<()> {
         let args = json!({
             "clientID": "sidex",
-            "clientName": "SideX",
+            "clientName": "scmCode",
             "adapterID": "sidex-dap",
             "linesStartAt1": true,
             "columnsStartAt1": true,

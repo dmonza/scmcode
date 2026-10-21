@@ -78,19 +78,19 @@ export class ConfigurationSection implements SettingsSection {
 		card1.className = 'sidex-settings-card';
 
 		// 1. Allow Sidex in background
-		const bgRow = this._createRow(card1, 'Allow Sidex in background', 'Sidex keeps running when you switch conversations. Terminal commands may run in the background depending on your auto execution setting');
+		const bgRow = this._createRow(card1, 'Allow scmCode in background', 'scmCode keeps running when you switch conversations. Terminal commands may run in the background depending on your auto execution setting');
 		this._addToggle(bgRow, this._getSetting('background', true) as boolean, 'sidex.cascade.background');
 
 		// 2. Auto-open edited files
-		const openFilesRow = this._createRow(card1, 'Auto-open edited files', 'Open files in the background if Sidex creates or edits them');
+		const openFilesRow = this._createRow(card1, 'Auto-open edited files', 'Open files in the background if scmCode creates or edits them');
 		this._addToggle(openFilesRow, this._getSetting('autoOpenFiles', true) as boolean, 'sidex.cascade.autoOpenFiles');
 
 		// 3. Sidex preview
-		const previewsRow = this._createRow(card1, 'Sidex preview', 'Sidex opens browser previews of dev servers it starts, integrating tightly with your workflow');
+		const previewsRow = this._createRow(card1, 'scmCode preview', 'scmCode opens browser previews of dev servers it starts, integrating tightly with your workflow');
 		this._addToggle(previewsRow, this._getSetting('previews', true) as boolean, 'sidex.cascade.previews');
 
 		// 4. Gitignore access
-		const gitignoreRow = this._createRow(card1, 'Gitignore access', 'Let Sidex, tab, and supercomplete view and edit files in .gitignore');
+		const gitignoreRow = this._createRow(card1, 'Gitignore access', 'Let scmCode, tab, and supercomplete view and edit files in .gitignore');
 		this._addToggle(gitignoreRow, this._getSetting('gitignoreAccess', false) as boolean, 'sidex.cascade.gitignoreAccess');
 
 		container.appendChild(card1);
@@ -278,7 +278,7 @@ export class ConfigurationSection implements SettingsSection {
 		lbl.textContent = 'Allowed origins';
 		const desc = document.createElement('div');
 		desc.className = 'sidex-settings-row-description';
-		desc.textContent = 'Origins Sidex auto-fetches URLs from';
+		desc.textContent = 'Origins scmCode auto-fetches URLs from';
 		title.appendChild(lbl);
 		title.appendChild(desc);
 		header.appendChild(title);

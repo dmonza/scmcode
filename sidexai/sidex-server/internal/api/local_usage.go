@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/sidex-ai/sidex-server/internal/ai"
@@ -27,16 +26,17 @@ type localUsageSummary struct {
 	Accounts          []localUsageAccount `json:"accounts"`
 }
 
+// localUsageAccount is one provider's locally recorded spend. scmCode never
+// asks a provider for plan or subscription quotas, so the optional
+// `windows`, `extraCredits` and `unavailable` fields older builds could emit
+// are always absent.
 type localUsageAccount struct {
-	ID           string           `json:"id"`
-	Label        string           `json:"label"`
-	Source       string           `json:"source"`
-	InputTokens  int              `json:"inputTokens"`
-	OutputTokens int              `json:"outputTokens"`
-	Cost         float64          `json:"cost"`
-	Windows      []ai.QuotaWindow `json:"windows,omitempty"`
-	ExtraCredits *ai.ExtraCredits `json:"extraCredits,omitempty"`
-	Unavailable  string           `json:"unavailable,omitempty"`
+	ID           string  `json:"id"`
+	Label        string  `json:"label"`
+	Source       string  `json:"source"`
+	InputTokens  int     `json:"inputTokens"`
+	OutputTokens int     `json:"outputTokens"`
+	Cost         float64 `json:"cost"`
 }
 
 func (h *Handler) LocalUsageSummary(w http.ResponseWriter, r *http.Request) {
@@ -105,49 +105,22 @@ func assembleUsageAccounts(svc *usage.Service, userID string, periodStart time.T
 	sortUsageAccountIDs(ids)
 
 	accounts := make([]localUsageAccount, len(ids))
-	var wg sync.WaitGroup
 	for i, id := range ids {
 		cfg, hasCfg := cfgs[id]
 		local := localBy[id]
 		accounts[i] = localUsageAccount{
 			ID:           id,
-			Label:        usageAccountLabel(id, cfg, hasCfg),
+			Label:        usageAccountLabel(id),
 			Source:       usageAccountSource(cfg, hasCfg),
 			InputTokens:  local.InputTokens,
 			OutputTokens: local.OutputTokens,
 			Cost:         local.Cost,
 		}
-		if !hasCfg || cfg.AuthMode != ai.AuthModeOAuth {
-			continue
-		}
-		wg.Add(1)
-		go func(idx int, c ai.ProviderConfig) {
-			defer wg.Done()
-			q, err := ai.FetchSubscriptionQuota(c)
-			if err != nil {
-				accounts[idx].Unavailable = "Could not load plan usage from this account."
-				return
-			}
-			if q == nil {
-				return
-			}
-			accounts[idx].Windows = q.Windows
-			accounts[idx].ExtraCredits = q.Extra
-		}(i, cfg)
 	}
-	wg.Wait()
 	return accounts
 }
 
-func usageAccountLabel(id string, cfg ai.ProviderConfig, hasCfg bool) string {
-	if hasCfg {
-		switch {
-		case id == "anthropic" && cfg.AuthMode == ai.AuthModeOAuth:
-			return "Claude Code"
-		case id == "openai" && cfg.AuthMode == ai.AuthModeOAuth:
-			return "Codex"
-		}
-	}
+func usageAccountLabel(id string) string {
 	switch id {
 	case "anthropic":
 		return "Anthropic"
@@ -166,9 +139,6 @@ func usageAccountLabel(id string, cfg ai.ProviderConfig, hasCfg bool) string {
 func usageAccountSource(cfg ai.ProviderConfig, hasCfg bool) string {
 	if !hasCfg {
 		return "recorded"
-	}
-	if cfg.AuthMode == ai.AuthModeOAuth {
-		return "oauth"
 	}
 	if cfg.APIKey == "" {
 		return "local"

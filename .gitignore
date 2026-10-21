@@ -1,5 +1,5 @@
 # =============================================================================
-# SideX .gitignore
+# scmCode .gitignore
 # =============================================================================
 
 # ── Dependencies ─────────────────────────────────────────────────────────────
@@ -109,16 +109,12 @@ extensions-rust/css-language-extension/src/css_data.rs
 extensions-meta.json
 public/builtin-extensions.js
 
-# ── Cloudflare Wrangler (marketplace-proxy dev state) ────────────────────────
-infrastructure/marketplace-proxy/.wrangler/
-infrastructure/marketplace-proxy/node_modules/
-
-# ── Sidex ephemeral state (never commit) ─────────────────────────────────────
-# Memory, bench results, and other generated state live in ~/.sidex/.
-# Only .sidex/rules/ and .sidex/skills/ are meant to be committed.
-.sidex/*
-!.sidex/rules/
-!.sidex/skills/
+# ── scmCode ephemeral state (never commit) ─────────────────────────────────────
+# Memory, bench results, and other generated state live in ~/.scmcode/.
+# Only .scmcode/rules/ and .scmcode/skills/ are meant to be committed.
+.scmcode/*
+!.scmcode/rules/
+!.scmcode/skills/
 MEMORY.md
 .kilo/
 
@@ -130,3 +126,5 @@ MEMORY.md
 /marketing/
 /sidex-site/
 /deploy/
+
+.claude/
