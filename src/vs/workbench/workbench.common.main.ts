@@ -37,6 +37,7 @@ import './browser/actions/listCommands.js';
 import './browser/actions/navigationActions.js';
 import './browser/actions/windowActions.js';
 import './browser/actions/tauriWindowActions.js'; // scmCode: Close Window / Exit
+import './browser/actions/scmcodeZoomActions.js'; // scmCode: Zoom In / Zoom Out / Reset Zoom
 import './browser/actions/workspaceActions.js';
 import './browser/actions/workspaceCommands.js';
 import './browser/actions/quickAccessActions.js';
@@ -272,6 +273,14 @@ import './contrib/externalTerminal/browser/externalTerminal.contribution.js';
 
 // Tasks
 import './contrib/tasks/browser/task.contribution.js';
+
+// CodeEditor Contributions
+// scmCode: SideX removed codeEditor.contribution.ts; these are the editor toggles of
+// View > Appearance and View > Word Wrap, imported one by one (see docs/issues/ISSUE-0011).
+import './contrib/codeEditor/browser/toggleMinimap.js';
+import './contrib/codeEditor/browser/toggleRenderWhitespace.js';
+import './contrib/codeEditor/browser/toggleRenderControlCharacter.js';
+import './contrib/codeEditor/browser/toggleWordWrap.js';
 
 // Markdown
 import './contrib/markdown/browser/markdown.contribution.js';

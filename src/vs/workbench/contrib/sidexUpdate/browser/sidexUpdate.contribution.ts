@@ -15,6 +15,7 @@ import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js'
 import { IUpdateService, StateType, State } from '../../../../platform/update/common/update.js';
 import { INotificationService, Severity, INotificationHandle } from '../../../../platform/notification/common/notification.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import './scmcodeUpdateActions.js'; // scmCode: Check for Updates... in the Manage menu
 
 const INITIAL_CHECK_DELAY = 5 * 1000; // Check 5s after startup (Cursor style)
 const RECHECK_INTERVAL = 4 * 60 * 60 * 1000; // Check every 4 hours

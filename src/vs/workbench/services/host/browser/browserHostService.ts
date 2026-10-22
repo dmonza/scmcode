@@ -68,6 +68,7 @@ import { ITextEditorOptions } from '../../../../platform/editor/common/editor.js
 import { coalesce } from '../../../../base/common/arrays.js';
 import { mainWindow, isAuxiliaryWindow } from '../../../../base/browser/window.js';
 import { isIOS, isMacintosh } from '../../../../base/common/platform.js';
+import { getTauriFullscreen, isTauriWindow } from './scmcodeFullscreen.js';
 import { IUserDataProfilesService } from '../../../../platform/userDataProfile/common/userDataProfile.js';
 import { URI } from '../../../../base/common/uri.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
@@ -280,13 +281,20 @@ export class BrowserHostService extends Disposable implements IHostService {
 							? window.visualViewport /** Visual viewport */
 							: window; /** Layout viewport */
 
+					// scmCode: under Tauri the main window reports its real full screen state
+					// instead of the size guess (see scmcodeFullscreen.ts).
+					const fireFullscreen =
+						isTauriWindow() && window === mainWindow
+							? async () =>
+									emitter.fire({
+										windowId,
+										fullscreen: (await getTauriFullscreen()) ?? !!detectFullscreen(window)
+									})
+							: () => emitter.fire({ windowId, fullscreen: !!detectFullscreen(window) });
+
 					// Fullscreen (Browser)
 					for (const event of [EventType.FULLSCREEN_CHANGE, EventType.WK_FULLSCREEN_CHANGE]) {
-						disposables.add(
-							addDisposableListener(window.document, event, () =>
-								emitter.fire({ windowId, fullscreen: !!detectFullscreen(window) })
-							)
-						);
+						disposables.add(addDisposableListener(window.document, event, () => fireFullscreen()));
 					}
 
 					// Fullscreen (Native)
@@ -294,7 +302,7 @@ export class BrowserHostService extends Disposable implements IHostService {
 						addDisposableThrottledListener(
 							viewport,
 							EventType.RESIZE,
-							() => emitter.fire({ windowId, fullscreen: !!detectFullscreen(window) }),
+							() => fireFullscreen(),
 							undefined,
 							isMacintosh ? 2000 /* adjust for macOS animation */ : 800 /* can be throttled */
 						)

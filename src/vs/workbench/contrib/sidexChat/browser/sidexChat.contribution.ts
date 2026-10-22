@@ -34,6 +34,7 @@ import { SIDEX_AI_ENABLED_SETTING } from '../../../browser/parts/sidex/sidexPart
 import { SidexChatViewPane } from './sidexChatView.js';
 import { restartServer } from './localServer.js';
 import './sidexChatService.js';
+import './scmcodeSettingsAction.js'; // scmCode: scmCode Settings in the Manage menu
 
 export const SIDEX_CHAT_CONTAINER_ID = 'workbench.view.sidexChat';
 export const SIDEX_CHAT_VIEW_ID = 'workbench.view.sidexChat.main';

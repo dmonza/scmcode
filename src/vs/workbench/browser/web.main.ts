@@ -75,6 +75,7 @@ import { localize, localize2 } from '../../nls.js';
 import { Categories } from '../../platform/action/common/actionCommonCategories.js';
 import { IDialogService } from '../../platform/dialogs/common/dialogs.js';
 import { IHostService } from '../services/host/browser/host.js';
+import { getTauriFullscreen, isTauriWindow } from '../services/host/browser/scmcodeFullscreen.js';
 import { IUriIdentityService } from '../../platform/uriIdentity/common/uriIdentity.js';
 import { UriIdentityService } from '../../platform/uriIdentity/common/uriIdentityService.js';
 import { BrowserWindow } from './window.js';
@@ -146,7 +147,18 @@ export class BrowserMain extends Disposable {
 
 	private init(): void {
 		// Browser config
-		setFullscreen(!!detectFullscreen(mainWindow), mainWindow);
+		// scmCode: under Tauri, ask the native window rather than guess from its size
+		// (see scmcodeFullscreen.ts). The answer is async, so start from "not full screen".
+		if (isTauriWindow()) {
+			setFullscreen(false, mainWindow);
+			getTauriFullscreen().then(fullscreen => {
+				if (fullscreen) {
+					setFullscreen(true, mainWindow);
+				}
+			});
+		} else {
+			setFullscreen(!!detectFullscreen(mainWindow), mainWindow);
+		}
 	}
 
 	async open(): Promise<IWorkbench> {

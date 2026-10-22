@@ -304,34 +304,67 @@ function setupWindowStateSave() {
 		.catch(() => {});
 }
 
+// scmCode: the parts of the title bar that VS Code marks `-webkit-app-region: no-drag`
+// (titlebarpart.css, menubar.css) plus form controls and toolbars. The window title text
+// is a drag area in VS Code; only the command center inside it is not.
 const TITLEBAR_NO_DRAG_SELECTOR =
-	'a, button, input, select, textarea, [contenteditable="true"], [draggable="true"], ' +
-	'.action-item, .command-center, .window-controls-container, .window-icon, ' +
-	'.menubar, .monaco-menu, .monaco-action-bar, .window-title, .action-toolbar-container, ' +
-	'.center-adjacent-toolbar-container, .tabs-container, .tab, .monaco-list, .pane-header, ' +
-	'.composite.title, .split-view-view, .editor-group-container';
+	'a, button, input, select, textarea, [contenteditable="true"], ' +
+	'.menubar, .monaco-menu, .command-center, .monaco-action-bar, .action-toolbar-container, ' +
+	'.center-adjacent-toolbar-container, .window-controls-container, .resizer';
 
+/**
+ * scmCode: only WebView2 honors `-webkit-app-region: drag` (titlebarpart.css turns it off),
+ * so the title bar acts as the window caption here, the way VS Code's title bar does
+ * through the OS: drag to move, double-click to maximize or restore. Same rules as Tauri's
+ * own drag region (tauri/src/window/scripts/drag.js): the drag starts on the first
+ * mousedown, the second mousedown of a double-click toggles maximize, and on macOS the
+ * toggle waits for a mouseup on the same spot, as the system does.
+ */
 function setupNativeWindowDragging() {
-	let appWindow: { startDragging(): Promise<void> } | null = null;
+	let appWindow: { startDragging(): Promise<void>; toggleMaximize(): Promise<void> } | null = null;
 	import('@tauri-apps/api/window')
 		.then(mod => {
 			appWindow = mod.getCurrentWindow();
 		})
 		.catch(() => {});
 
-	document.addEventListener('mousedown', (e: MouseEvent) => {
-		if (e.button !== 0 || e.defaultPrevented || !appWindow) {
-			return;
-		}
+	const isMac = navigator.userAgent.includes('Mac');
+	let macDoubleClick: { x: number; y: number } | undefined;
+
+	// Only no-drag elements inside the title bar count: the title bar itself sits inside the
+	// workbench grid, so the search must not climb past it.
+	const isCaption = (e: MouseEvent) => {
 		const target = e.target as HTMLElement | null;
-		if (!target?.closest('.part.titlebar')) {
+		const titlebar = target?.closest('.part.titlebar');
+		if (e.button !== 0 || e.defaultPrevented || !target || !titlebar) {
+			return false;
+		}
+		const noDrag = target.closest(TITLEBAR_NO_DRAG_SELECTOR);
+		return !noDrag || !titlebar.contains(noDrag);
+	};
+
+	document.addEventListener('mousedown', (e: MouseEvent) => {
+		macDoubleClick = undefined;
+		if (!appWindow || !isCaption(e) || (e.detail !== 1 && e.detail !== 2)) {
 			return;
 		}
-		if (target.closest(TITLEBAR_NO_DRAG_SELECTOR)) {
+		if (isMac && e.detail === 2) {
+			macDoubleClick = { x: e.clientX, y: e.clientY };
 			return;
 		}
-		appWindow.startDragging().catch(() => {});
+		e.preventDefault();
+		(e.detail === 2 ? appWindow.toggleMaximize() : appWindow.startDragging()).catch(() => {});
 	});
+
+	if (isMac) {
+		document.addEventListener('mouseup', (e: MouseEvent) => {
+			const start = macDoubleClick;
+			macDoubleClick = undefined;
+			if (appWindow && start && isCaption(e) && e.clientX === start.x && e.clientY === start.y) {
+				appWindow.toggleMaximize().catch(() => {});
+			}
+		});
+	}
 }
 
 function setupWindowsEditorNewlineKeybindings() {

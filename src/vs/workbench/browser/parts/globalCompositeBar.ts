@@ -941,6 +941,9 @@ function simpleActivityContextMenuActions(storageService: IStorageService, isAcc
 }
 
 export function isAccountsActionVisible(storageService: IStorageService): boolean {
+	// scmCode: hidden by default (VS Code shows it). scmCode has no accounts, Settings Sync or
+	// sign-in providers, so the Accounts menu would be empty; it can still be shown from the
+	// activity bar context menu.
 	return storageService.getBoolean(
 		AccountsActivityActionViewItem.ACCOUNTS_VISIBILITY_PREFERENCE_KEY,
 		StorageScope.PROFILE,
