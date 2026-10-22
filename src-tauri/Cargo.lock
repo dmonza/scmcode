@@ -4009,28 +4009,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
-name = "onig"
-version = "6.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "336b9c63443aceef14bea841b899035ae3abe89b7c486aaf4c5bd8aafedac3f0"
-dependencies = [
- "bitflags 2.11.1",
- "libc",
- "once_cell",
- "onig_sys",
-]
-
-[[package]]
-name = "onig_sys"
-version = "69.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7f86c6eef3d6df15f23bcfb6af487cbd2fed4e5581d58d5bf1f5f8b7f6727dc"
-dependencies = [
- "cc",
- "pkg-config",
-]
-
-[[package]]
 name = "opaque-debug"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6088,7 +6066,6 @@ dependencies = [
  "sidex-tasks",
  "sidex-terminal",
  "sidex-text",
- "sidex-textmate",
  "sidex-theme",
  "sidex-update",
  "sidex-workspace",
@@ -6338,23 +6315,6 @@ dependencies = [
  "serde_json",
  "unicode-segmentation",
  "unicode-width",
-]
-
-[[package]]
-name = "sidex-textmate"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "log",
- "once_cell",
- "onig",
- "parking_lot",
- "plist",
- "pretty_assertions",
- "regex",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
 ]
 
 [[package]]
