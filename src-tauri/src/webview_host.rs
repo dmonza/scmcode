@@ -21,7 +21,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use tauri::{AppHandle, Runtime, State};
+use tauri::State;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 /// The files a webview host page needs, with their content types.
@@ -50,8 +50,8 @@ pub fn webview_host_endpoint(host: State<'_, WebviewHost>) -> String {
 
 /// Starts the server. Reuses the last port when it is free, so a webview keeps
 /// its origin (and the state stored under it) across restarts.
-pub fn start<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewHost, String> {
-    let files = Arc::new(load_files(app));
+pub fn start() -> Result<WebviewHost, String> {
+    let files = Arc::new(load_files());
     let port_file = crate::app_dirs::app_data_dir().join(PORT_FILE);
     let previous = std::fs::read_to_string(&port_file)
         .ok()
@@ -83,10 +83,10 @@ pub fn start<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewHost, String> {
 
 type Files = Vec<(&'static str, &'static str, Vec<u8>)>;
 
-fn load_files<R: Runtime>(app: &AppHandle<R>) -> Files {
+fn load_files() -> Files {
     FILES
         .iter()
-        .filter_map(|(name, mime)| match read_file(app, name) {
+        .filter_map(|(name, mime)| match read_file(name) {
             Some(bytes) => Some((*name, *mime, bytes)),
             None => {
                 log::error!("webview host: webview-pre/{name} not found");
@@ -96,8 +96,9 @@ fn load_files<R: Runtime>(app: &AppHandle<R>) -> Files {
         .collect()
 }
 
-fn read_file<R: Runtime>(app: &AppHandle<R>, name: &str) -> Option<Vec<u8>> {
-    // `tauri dev` doesn't embed the frontend; read the source copy.
+fn read_file(name: &str) -> Option<Vec<u8>> {
+    // `tauri dev` doesn't embed the frontend; read the source copy so edits to
+    // webview-pre show up without recompiling.
     #[cfg(debug_assertions)]
     if tauri::is_dev() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -105,9 +106,23 @@ fn read_file<R: Runtime>(app: &AppHandle<R>, name: &str) -> Option<Vec<u8>> {
             .join(name);
         return std::fs::read(path).ok();
     }
-    app.asset_resolver()
-        .get(format!("webview-pre/{name}"))
-        .map(|asset| asset.bytes)
+    // scmCode: the webview host page is embedded in the binary, not taken from
+    // the app's frontend `dist/`. Shipping it in `dist/` would also serve it on
+    // the app origin, where a nested frame could reach the workbench and its
+    // IPC (TR-01); from here it only ever loads on a webview's loopback origin.
+    embedded(name)
+}
+
+/// The `webview-pre` files, built into the binary at compile time from the
+/// source tree. Keep in sync with `FILES`.
+fn embedded(name: &str) -> Option<Vec<u8>> {
+    let bytes: &[u8] = match name {
+        "index.html" => include_bytes!("../../public/webview-pre/index.html"),
+        "fake.html" => include_bytes!("../../public/webview-pre/fake.html"),
+        "service-worker.js" => include_bytes!("../../public/webview-pre/service-worker.js"),
+        _ => return None,
+    };
+    Some(bytes.to_vec())
 }
 
 async fn serve(listener: tokio::net::TcpListener, port: u16, files: Arc<Files>) {
@@ -325,6 +340,21 @@ mod tests {
         let mut response = Vec::new();
         stream.read_to_end(&mut response).await.unwrap();
         status(&response)
+    }
+
+    #[test]
+    fn embedded_covers_every_served_file_and_matches_source() {
+        for (name, _) in FILES {
+            let bytes = embedded(name).unwrap_or_else(|| panic!("no embedded bytes for {name}"));
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../public/webview-pre")
+                .join(name);
+            let on_disk =
+                std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+            assert_eq!(bytes, on_disk, "embedded {name} differs from source");
+        }
+        assert!(embedded("evil.html").is_none());
+        assert!(embedded("../Cargo.toml").is_none());
     }
 
     #[tokio::test]

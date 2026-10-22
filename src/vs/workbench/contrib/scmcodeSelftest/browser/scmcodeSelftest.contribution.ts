@@ -28,6 +28,9 @@ interface InsideReport {
 	readonly ipc: 'allowed' | 'refused' | 'absent';
 	readonly asset: 'readable' | 'blocked';
 	readonly image: 'loaded' | 'failed';
+	// A data: image the page's Content-Security-Policy forbids: 'blocked' proves
+	// the restored extension CSP is enforced (TR-03), not stripped as before.
+	readonly cspForbiddenImage: 'loaded' | 'blocked';
 	readonly serviceWorker: boolean;
 }
 
@@ -101,23 +104,67 @@ class ScmcodeSelftestContribution extends Disposable {
 		webview.setHtml(insideHtml(asWebviewUri(image).toString(true), assetUrl));
 		const report = await inside;
 
+		// A second webview with scripts disabled must not run its script
+		// (enableScripts honored, TR-03). No message within the window = blocked.
+		const noScript = this._register(
+			this.webviewService.createWebviewElement({
+				title: 'scmCode self-test (no scripts)',
+				options: {},
+				contentOptions: { allowScripts: false, localResourceRoots: [] },
+				extension: undefined
+			})
+		);
+		const noScriptContainer = mainWindow.document.createElement('div');
+		noScriptContainer.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;z-index:100000;';
+		mainWindow.document.body.appendChild(noScriptContainer);
+		this._register({ dispose: () => noScriptContainer.remove() });
+		noScript.mountTo(noScriptContainer, mainWindow);
+		const scriptRan = await new Promise<boolean>(resolve => {
+			const timer = setTimeout(() => resolve(false), 3000);
+			this._register(
+				noScript.onMessage(() => {
+					clearTimeout(timer);
+					resolve(true);
+				})
+			);
+			noScript.setHtml(
+				'<!DOCTYPE html><html><body><script>try{acquireVsCodeApi().postMessage("ran")}catch(e){}</script></body></html>'
+			);
+		});
+
 		const checks = {
 			sandboxOrigin: /^http:\/\/[0-9a-v]{52}\.localhost:\d+$/.test(report.origin),
 			workbenchUnreachable: report.top === 'blocked',
 			appCommandsRefused: report.ipc !== 'allowed',
 			assetUnreadableFromWebview: report.asset === 'blocked',
 			assetReadableFromWorkbench: workbenchReadsAsset,
-			localResourceLoads: report.image === 'loaded'
+			localResourceLoads: report.image === 'loaded',
+			// With a restrictive CSP present (TR-03), the allowed resource still loads
+			// (localResourceLoads above) while a CSP-forbidden one is blocked.
+			cspEnforced: report.cspForbiddenImage === 'blocked',
+			scriptsBlockedWhenDisabled: !scriptRan
 		};
-		return { ok: Object.values(checks).every(Boolean), checks, inside: report };
+		return { ok: Object.values(checks).every(Boolean), checks, inside: { ...report, scriptRan } };
 	}
 }
 
 /** The page loaded in the webview: probes from inside and posts the result back. */
 function insideHtml(imageSrc: string, assetUrl: string): string {
+	// A CSP that restricts images to the webview resource origin (as a real
+	// extension's CSP does). It is intentionally narrow to one directive: it must
+	// prove the extension CSP is delivered and enforced (TR-03, no longer
+	// stripped) without blocking the webview framework's own bootstrap or service
+	// worker (a stricter default-src 'none' breaks those). The allowed image must
+	// still load through the service worker; a data: image must be blocked.
+	const csp = `img-src https://*.vscode-resource.vscode-cdn.net;`;
+	// 1x1 transparent GIF; a valid image that loads only if the CSP doesn't block data:.
+	const forbidden = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 	return `<!DOCTYPE html>
-<html><body>
+<html>
+<head><meta http-equiv="Content-Security-Policy" content="${csp}"></head>
+<body>
 <img id="img">
+<img id="evil">
 <script>
 (async () => {
 	const vscode = acquireVsCodeApi();
@@ -133,6 +180,12 @@ function insideHtml(imageSrc: string, assetUrl: string): string {
 		img.onload = () => resolve(img.naturalWidth > 0 ? 'loaded' : 'failed');
 		img.onerror = () => resolve('failed');
 		img.src = ${JSON.stringify(imageSrc)};
+	});
+	const evil = document.getElementById('evil');
+	report.cspForbiddenImage = await new Promise(resolve => {
+		evil.onload = () => resolve('loaded');
+		evil.onerror = () => resolve('blocked');
+		evil.src = ${JSON.stringify(forbidden)};
 	});
 	report.serviceWorker = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
 	vscode.postMessage(report);

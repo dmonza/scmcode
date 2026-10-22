@@ -2,6 +2,7 @@ mod app_dirs;
 mod app_origin;
 mod commands;
 mod navigation;
+mod scmcode_asset;
 #[cfg(feature = "selftest")]
 mod selftest;
 mod server;
@@ -487,83 +488,57 @@ pub fn run() {
         .register_asynchronous_uri_scheme_protocol("sidex-asset", |ctx, request, responder| {
             // scmCode: only the app may read these responses (no
             // `Access-Control-Allow-Origin: *`): webviews and other origins
-            // can't fetch local files through this protocol.
+            // can't fetch local files through this protocol. Every response is
+            // also sandboxed and not sniffed, so a served file can't run as a
+            // privileged document (TR-02); see scmcode_asset.rs.
             let dev_url = app_origin::dev_url(ctx.app_handle());
             let request_headers = request.headers().clone();
             std::thread::spawn(move || {
-                let cors = |builder: tauri::http::response::Builder| {
-                    app_origin::app_only_cors(builder, &request_headers, dev_url.as_ref())
+                // Shared on every response: app-only CORS, an opaque sandbox and no sniffing.
+                let secured = |status: u16| {
+                    app_origin::app_only_cors(
+                        tauri::http::Response::builder().status(status),
+                        &request_headers,
+                        dev_url.as_ref(),
+                    )
+                    .header("Content-Security-Policy", scmcode_asset::SANDBOX_CSP)
+                    .header("X-Content-Type-Options", "nosniff")
                 };
+                let reject = |status: u16| secured(status).body(Vec::new()).unwrap();
+
                 let raw_path = request.uri().path();
                 let decoded = urlencoding::decode(raw_path.strip_prefix('/').unwrap_or(raw_path))
                     .unwrap_or_default();
 
-                // Security: only serve files from the app's resource directories
-                // Block path traversal, symlinks to sensitive files, and absolute paths
-                // outside the expected asset directories.
-                let path = std::path::Path::new(decoded.as_ref());
-                let canonical = match path.canonicalize() {
+                // The workbench always sends an absolute file path; reject anything
+                // else before canonicalizing (a relative path would resolve against
+                // the process working directory).
+                if !scmcode_asset::is_servable_request(&decoded) {
+                    responder.respond(reject(403));
+                    return;
+                }
+
+                let canonical = match std::path::Path::new(decoded.as_ref()).canonicalize() {
                     Ok(p) => p,
                     Err(_) => {
-                        responder.respond(
-                            cors(tauri::http::Response::builder().status(404))
-                                .body(Vec::new())
-                                .unwrap(),
-                        );
+                        responder.respond(reject(404));
                         return;
                     }
                 };
 
-                // Only allow files within the user's workspace or common asset paths
-                // scmCode: compare with `/` on Windows too (canonical paths use `\`).
-                let canonical_str = canonical.to_string_lossy().replace('\\', "/");
-                let is_safe = !canonical_str.contains("/.ssh/")
-                    && !canonical_str.contains("/.gnupg/")
-                    && !canonical_str.contains("/etc/")
-                    && !canonical_str.starts_with("/System")
-                    && !canonical_str.contains("/.env");
-
-                if !is_safe {
-                    responder.respond(
-                        cors(tauri::http::Response::builder().status(403))
-                            .body(Vec::new())
-                            .unwrap(),
-                    );
+                if !scmcode_asset::is_safe_canonical(&canonical) {
+                    responder.respond(reject(403));
                     return;
                 }
 
                 let Ok(data) = std::fs::read(&canonical) else {
-                    responder.respond(
-                        cors(tauri::http::Response::builder().status(404))
-                            .body(Vec::new())
-                            .unwrap(),
-                    );
+                    responder.respond(reject(404));
                     return;
                 };
 
-                let mime = match std::path::Path::new(decoded.as_ref())
-                    .extension()
-                    .and_then(|e| e.to_str())
-                {
-                    Some("png") => "image/png",
-                    Some("jpg" | "jpeg") => "image/jpeg",
-                    Some("gif") => "image/gif",
-                    Some("svg") => "image/svg+xml",
-                    Some("webp") => "image/webp",
-                    Some("ico") => "image/x-icon",
-                    Some("woff") => "font/woff",
-                    Some("woff2") => "font/woff2",
-                    Some("ttf") => "font/ttf",
-                    Some("css") => "text/css",
-                    Some("js") => "text/javascript",
-                    Some("json") => "application/json",
-                    Some("wasm") => "application/wasm",
-                    _ => "application/octet-stream",
-                };
-
                 responder.respond(
-                    cors(tauri::http::Response::builder().status(200))
-                        .header("Content-Type", mime)
+                    secured(200)
+                        .header("Content-Type", scmcode_asset::content_type(&canonical))
                         .body(data)
                         .unwrap(),
                 );
@@ -574,7 +549,7 @@ pub fn run() {
             std::fs::create_dir_all(&app_data).ok();
             // scmCode: webviews run on their own loopback origin (webview_host.rs).
             // Without it they fail to load instead of sharing the workbench origin.
-            match webview_host::start(app.handle()) {
+            match webview_host::start() {
                 Ok(host) => {
                     app.manage(host);
                 }

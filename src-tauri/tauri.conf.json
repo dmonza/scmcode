@@ -28,16 +28,7 @@
       }
     ],
     "security": {
-      "csp": null,
-      "assetProtocol": {
-        "enable": true,
-        "scope": [
-          "$HOME/**",
-          "$TEMP/**",
-          "$TMP/**",
-          "/tmp/**"
-        ]
-      }
+      "csp": null
     }
   },
   "plugins": {},

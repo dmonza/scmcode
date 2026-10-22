@@ -36,6 +36,17 @@ if (fs.existsSync('extensions-meta.json')) {
 }
 console.log('Post-build: copied extensions\n');
 
+// scmCode: do not ship the webview host page on the app origin. Vite copies
+// public/webview-pre into dist; the Rust backend instead embeds those files and
+// serves them only on each webview's loopback origin (src-tauri/src/webview_host.rs).
+// A copy under dist/ would also be reachable on the app origin, where a nested
+// frame could reach the workbench and its IPC (TR-01).
+const webviewPre = path.join(DIST_DIR, 'webview-pre');
+if (fs.existsSync(webviewPre)) {
+  fs.rmSync(webviewPre, { recursive: true, force: true });
+  console.log('Post-build: removed dist/webview-pre (served from the Rust backend)\n');
+}
+
 // Calculate bundle sizes
 const js = getFileSizes(ASSETS_DIR, '.js');
 const css = getFileSizes(ASSETS_DIR, '.css');

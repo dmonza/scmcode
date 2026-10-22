@@ -810,7 +810,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 				this._onCreateWebviewPanel(msg);
 				break;
 			case 'webviewHtmlUpdate':
-				this._onWebviewHtmlUpdate(msg.panelId, msg.html);
+				this._onWebviewHtmlUpdate(msg.panelId, msg.html, msg.localResourceRoots);
 				break;
 			case 'webviewPanelUpdate':
 				this._onWebviewPanelUpdate(msg.panelId, msg.title);
@@ -819,7 +819,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 				this._onWebviewPostMessage(msg.panelId, msg.message);
 				break;
 			case 'webviewViewHtmlUpdate':
-				this._onWebviewViewHtmlUpdate(msg.webviewHandle, msg.html);
+				this._onWebviewViewHtmlUpdate(msg.webviewHandle, msg.html, msg.localResourceRoots);
 				break;
 			case 'webviewViewPostMessage':
 				this._onWebviewViewPostMessage(msg.webviewHandle, msg.message);
@@ -1123,9 +1123,17 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 		(this as any)[`_wvvHandles_${viewId}`] = webviewHandles;
 	}
 
-	private _onWebviewViewHtmlUpdate(webviewHandle: string, html: string): void {
+	private _onWebviewViewHtmlUpdate(webviewHandle: string, html: string, roots?: string[]): void {
 		const handles = this._findWebviewHandles(webviewHandle);
 		if (handles) {
+			// scmCode (TR-03): confine resource loading to the reported roots (an
+			// empty list included: no local resources).
+			if (Array.isArray(roots)) {
+				handles.webview.contentOptions = {
+					...handles.webview.contentOptions,
+					localResourceRoots: roots.map(p => URI.file(p)),
+				};
+			}
 			handles.webview.setHtml(html);
 		} else {
 			this.logService.warn(`[ExtHost] webviewViewHtmlUpdate: handle ${webviewHandle} not found`);
@@ -1178,7 +1186,10 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 		this._capabilityRetryTimer = undefined;
 		this.logService.info(`[ExtHost] Connected — ${msg.extensionCount} extensions`);
 
-		this._request('resetPanels', {}, { timeoutMs: 3000, allowBeforeHandshake: true }).catch(() => {});
+		// scmCode (ISSUE-0014): no resetPanels here. Sent from the handshake it raced
+		// with extensions the host activates at startup and orphaned their webview
+		// panels; server.cjs now resets panels only when it reuses a host for a new
+		// client, before the handshake.
 
 		for (const ext of msg.extensions) {
 			this._send({ id: this._nextId(), type: 'activateExtension', params: { extensionId: ext.id } });
@@ -2771,8 +2782,11 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 						enableFindWidget: msg.options?.enableFindWidget ?? false,
 					},
 					contentOptions: {
-						allowScripts: msg.options?.enableScripts ?? true,
-						localResourceRoots: [URI.from({ scheme: 'file', path: '/' })],
+						// scmCode (TR-03): honor the extension's enableScripts (VS Code
+						// defaults to false) instead of always granting scripts, and
+						// confine resources to the reported roots instead of the whole disk.
+						allowScripts: msg.options?.enableScripts ?? false,
+						localResourceRoots: ((msg.localResourceRoots ?? []) as string[]).map(p => URI.file(p)),
 					},
 					extension: undefined,
 				},
@@ -2802,9 +2816,19 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 		}
 	}
 
-	private _onWebviewHtmlUpdate(id: string, html: string): void {
+	private _onWebviewHtmlUpdate(id: string, html: string, roots?: string[]): void {
 		const panel = this._webviewPanels.get(id);
 		if (panel) {
+			// scmCode (TR-03): confine resource loading to the roots the extension
+			// host reports (the extension's own, or VS Code's default), so the webview
+			// can't fetch arbitrary local files through the resource service worker.
+			// An empty list is applied too: it means no local resources.
+			if (Array.isArray(roots)) {
+				panel.webview.contentOptions = {
+					...panel.webview.contentOptions,
+					localResourceRoots: roots.map(p => URI.file(p)),
+				};
+			}
 			panel.webview.setHtml(html);
 		}
 	}

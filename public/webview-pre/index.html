@@ -373,11 +373,12 @@
 
 				const parentOrigin = searchParams.get('parentOrigin');
 
+				// scmCode: webviews are served from their own loopback origin
+				// (`<parentOriginHash>.localhost:<port>`, see src-tauri/src/webview_host.rs),
+				// so the upstream parentOriginHash check below validates them without the
+				// origin exception SideX added here. Matches upstream VS Code:
+				// src/vs/workbench/contrib/webview/browser/pre/index.html (signalReady).
 				const hostname = location.hostname;
-
-				if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === 'tauri.localhost' || hostname.endsWith('.tauri.localhost')) {
-					return start(parentOrigin);
-				}
 
 				if (!crypto.subtle) {
 					// cannot validate, not running in a secure context

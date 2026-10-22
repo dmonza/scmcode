@@ -175,6 +175,15 @@ class ExtensionHostManager {
 
   getOrCreateSharedProcess(initData) {
     if (this._sharedEntry && this._sharedEntry.child.connected) {
+      // scmCode (ISSUE-0014): a new client is attaching to a host that outlived its
+      // previous client (e.g. a workbench reload), so that client's webview panels
+      // are gone from the UI. Drop them here, before this client's handshake: IPC is
+      // ordered, so the reset can never reach panels created for the new client.
+      // The workbench used to send resetPanels itself on handshake, which raced with
+      // extensions the host activates at startup and orphaned their panels (shown in
+      // the UI, but every webview message dropped). In VS Code panels simply live as
+      // long as their extension host; there is no reset aimed at live panels.
+      this._sharedEntry.child.send({ type: 'resetPanels' });
       return this._sharedEntry;
     }
 

@@ -22,81 +22,42 @@ function uriPathToFsPath(uriPath) {
   return uriPath;
 }
 
-const VSCODE_RESOURCE_RE = /https:\/\/file\+[^.]*\.vscode-resource\.vscode-cdn\.net(\/[^"')\s]*)/g;
-
-function extractResourcePath(url) {
-  const m = /https:\/\/file\+[^.]*\.vscode-resource\.vscode-cdn\.net(\/[^"')\s]*)/.exec(url);
-  return m ? uriPathToFsPath(decodeURIComponent(m[1])) : null;
-}
-
-function inlineWebviewResources(html) {
-  if (!html || typeof html !== 'string') return html;
-  let result = html;
-
-  result = result.replace(
-    /<link[^>]+href=["'](https:\/\/file\+[^.]*\.vscode-resource\.vscode-cdn\.net\/[^"']+\.css)["'][^>]*\/?>/gi,
-    (_match, url) => {
-      const p = extractResourcePath(url);
-      if (!p) return _match;
-      try {
-        let css = fs.readFileSync(p, 'utf8');
-        css = inlineCssUrls(css);
-        return `<style>${css}</style>`;
-      } catch { return _match; }
-    }
-  );
-
-  result = result.replace(
-    /<script[^>]+src=["'](https:\/\/file\+[^.]*\.vscode-resource\.vscode-cdn\.net\/[^"']+\.js)["'][^>]*><\/script>/gi,
-    (_match, url) => {
-      const p = extractResourcePath(url);
-      if (!p) return _match;
-      try {
-        const content = fs.readFileSync(p, 'utf8').replace(/<\/script/gi, '<\\/script');
-        return `<script>${content}<\/script>`;
-      } catch { return _match; }
-    }
-  );
-
-  const binaryMimes = {
-    '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp',
-    '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf',
-    '.otf': 'font/otf', '.eot': 'application/vnd.ms-fontobject',
+// scmCode (TR-03): the filesystem roots a webview's resources may come from, sent to
+// the workbench as the webview's `localResourceRoots`, where VS Code's
+// loadLocalResource enforces them, so a webview can't fetch a home-dir key or a
+// system file through the resource service worker.
+// - If the extension set `localResourceRoots`, those are used, as in VS Code (the
+//   Markdown preview, for one, adds the previewed document's folder).
+// - Otherwise VS Code's default applies: the extension's folder plus the workspace
+//   folders (extHostWebview.ts, getDefaultLocalResourceRoots). The shim can't tell
+//   which extension created the webview, so the default covers every extension
+//   folder (built-in, user, search paths); host.cjs knows the built-ins the
+//   workbench's installed list may omit.
+function webviewResourceRoots(host, requested) {
+  if (Array.isArray(requested)) {
+    return requested
+      .filter((u) => u && (typeof u === 'string' || !u.scheme || u.scheme === 'file'))
+      .map((u) => (typeof u === 'string' ? u : u.fsPath || uriPathToFsPath(u.path)))
+      .filter(Boolean);
+  }
+  const roots = [];
+  const push = (p) => {
+    if (p && !roots.includes(p)) roots.push(p);
   };
-  result = result.replace(VSCODE_RESOURCE_RE, (_match, rawPath) => {
-    const p = decodeURIComponent(rawPath);
-    const ext = path.extname(p).toLowerCase();
-    const mime = binaryMimes[ext];
-    if (mime) {
-      try { return `data:${mime};base64,${fs.readFileSync(p).toString('base64')}`; } catch { return _match; }
+  push(process.env.SIDEX_BUILTIN_EXTENSIONS_DIR);
+  push(process.env.SIDEX_EXTENSIONS_DIR);
+  if (host && Array.isArray(host._extensionPaths)) {
+    for (const p of host._extensionPaths) push(p);
+  }
+  if (host && host._extensions) {
+    for (const [, ext] of host._extensions) {
+      if (ext) push(ext.extensionPath);
     }
-    try {
-      const content = fs.readFileSync(p, 'utf8');
-      const guessedMime = ext === '.css' ? 'text/css' : ext === '.js' ? 'text/javascript' : 'text/plain';
-      return `data:${guessedMime};base64,${Buffer.from(content).toString('base64')}`;
-    } catch { return _match; }
-  });
-
-  result = result.replace(/<meta[^>]+http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
-
-  return result;
-}
-
-function inlineCssUrls(css) {
-  const binaryMimes = {
-    '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp',
-    '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf',
-    '.otf': 'font/otf', '.eot': 'application/vnd.ms-fontobject',
-  };
-  return css.replace(/url\(["']?(https:\/\/file\+[^.]*\.vscode-resource\.vscode-cdn\.net\/[^"')\s]+)["']?\)/gi, (_match, url) => {
-    const p = extractResourcePath(url);
-    if (!p) return _match;
-    const mime = binaryMimes[path.extname(p).toLowerCase()];
-    if (!mime) return _match;
-    try { return `url(data:${mime};base64,${fs.readFileSync(p).toString('base64')})`; } catch { return _match; }
-  });
+  }
+  if (host && Array.isArray(host._workspaceFolders)) {
+    for (const folder of host._workspaceFolders) push(folder);
+  }
+  return roots;
 }
 
 process.on('unhandledRejection', (reason) => {
@@ -1036,7 +997,9 @@ class ExtensionHost extends EventEmitter {
     const visibilityEmitter = new (require('events').EventEmitter)();
     let _html = '';
     let _visible = true;
-    let _options = { enableScripts: true, enableForms: false, localResourceRoots: [] };
+    // scmCode (TR-03): no localResourceRoots by default, so VS Code's default roots
+    // apply unless the extension sets its own (an explicit [] still means none).
+    let _options = { enableScripts: true, enableForms: false };
     const host = this;
     const RESOURCE_AUTHORITY = 'vscode-resource.vscode-cdn.net';
 
@@ -1052,7 +1015,7 @@ class ExtensionHost extends EventEmitter {
         get html() { return _html; },
         set html(v) {
           _html = v;
-          host.emit('event', { type: 'webviewViewHtmlUpdate', webviewHandle, html: inlineWebviewResources(v) });
+          host.emit('event', { type: 'webviewViewHtmlUpdate', webviewHandle, html: v, localResourceRoots: webviewResourceRoots(host, _options.localResourceRoots) });
         },
         onDidReceiveMessage: (listener) => {
           messageEmitter.on('message', listener);
@@ -1090,7 +1053,7 @@ class ExtensionHost extends EventEmitter {
             toJSON() { return { scheme: this.scheme, authority: this.authority, path: this.path }; },
           };
         },
-        cspSource: `https://*.${RESOURCE_AUTHORITY} 'self' http://localhost:* *`,
+        cspSource: `'self' https://*.${RESOURCE_AUTHORITY}`,
       },
       get visible() { return _visible; },
       onDidChangeVisibility: (listener) => {
@@ -3691,7 +3654,7 @@ function createVscodeShim() {
       let _active = true;
       let _visible = true;
       const column = typeof showOptions === 'number' ? showOptions : showOptions?.viewColumn || 1;
-      host.emit('event', { type: 'createWebviewPanel', panelId, viewType, title, column, options });
+      host.emit('event', { type: 'createWebviewPanel', panelId, viewType, title, column, options, localResourceRoots: webviewResourceRoots(host, options && options.localResourceRoots) });
       const panel = {
         viewType,
         get title() { return _title; },
@@ -3716,7 +3679,7 @@ function createVscodeShim() {
           get options() { return options || {}; },
           set options(v) { options = { ...options, ...v }; },
           get html() { return _html; },
-          set html(v) { _html = v; host.emit('event', { type: 'webviewHtmlUpdate', panelId, html: inlineWebviewResources(v) }); },
+          set html(v) { _html = v; host.emit('event', { type: 'webviewHtmlUpdate', panelId, html: v, localResourceRoots: webviewResourceRoots(host, options && options.localResourceRoots) }); },
           onDidReceiveMessage: messageEmitter.event,
           postMessage(msg) {
             host.emit('event', { type: 'webviewPostMessage', panelId, message: msg });
@@ -3749,7 +3712,7 @@ function createVscodeShim() {
               toJSON() { return { scheme: this.scheme, authority: this.authority, path: this.path }; },
             };
           },
-          cspSource: "https://*.vscode-resource.vscode-cdn.net 'self' http://localhost:* *",
+          cspSource: "'self' https://*.vscode-resource.vscode-cdn.net",
         },
         get options() { return options || {}; },
         get viewColumn() { return column; },
