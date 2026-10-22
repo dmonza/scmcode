@@ -150,7 +150,7 @@ pub fn glob(args: &Args, ctx: &ToolContext) -> Result<String> {
         .build()
         .flatten()
     {
-        if entry.file_type().map_or(true, |ft| ft.is_dir()) {
+        if entry.file_type().is_none_or(|ft| ft.is_dir()) {
             continue;
         }
         let name = entry.file_name().to_string_lossy();

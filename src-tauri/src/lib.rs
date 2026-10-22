@@ -22,7 +22,6 @@ use commands::window::restore_and_show;
 use std::sync::Arc;
 #[cfg(target_os = "macos")]
 use tauri::menu::{Menu, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
-use tauri::Listener;
 use tauri::Manager;
 
 #[cfg(target_os = "macos")]
@@ -340,7 +339,11 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         .build()?;
 
     let sidex_menu = SubmenuBuilder::with_id(app, "sidex_menu", "scmCode")
-        .item(&PredefinedMenuItem::about(app, Some("About scmCode"), None)?)
+        .item(&PredefinedMenuItem::about(
+            app,
+            Some("About scmCode"),
+            None,
+        )?)
         .separator()
         .item(&PredefinedMenuItem::services(app, None)?)
         .separator()

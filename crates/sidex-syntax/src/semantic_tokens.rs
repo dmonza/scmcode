@@ -169,13 +169,7 @@ pub fn decode_semantic_tokens(data: &[u32]) -> Vec<SemanticToken> {
     let mut line = 0u32;
     let mut start = 0u32;
 
-    for chunk in data.chunks_exact(5) {
-        let delta_line = chunk[0];
-        let delta_start = chunk[1];
-        let length = chunk[2];
-        let token_type = chunk[3];
-        let modifiers = chunk[4];
-
+    for &[delta_line, delta_start, length, token_type, modifiers] in data.as_chunks::<5>().0 {
         line += delta_line;
         if delta_line > 0 {
             start = delta_start;

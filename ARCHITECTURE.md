@@ -144,7 +144,7 @@ is the source of truth for the full, current list.
 | **terminal** | `terminal_spawn`, `terminal_write`, `terminal_resize`, `terminal_kill`, `terminal_get_pid`, `get_default_shell`, `check_shell_exists`, `get_available_shells` |
 | **search** | `search_files`, `search_text` |
 | **window** | `create_window`, `close_window`, `set_window_title`, `get_monitors` |
-| **os** | `get_os_info`, `get_env`, `get_all_env`, `get_shell` |
+| **os** | `get_os_info`, `get_env`, `get_all_env` |
 | **storage** | `storage_get`, `storage_set`, `storage_delete` |
 | **git** | `git_status`, `git_diff`, `git_log`, `git_log_graph`, `git_add`, `git_commit`, `git_checkout`, `git_branches`, `git_create_branch`, `git_delete_branch`, `git_push`, `git_pull`, `git_fetch`, `git_stash`, `git_reset`, `git_show`, `git_init`, `git_is_repo`, `git_clone`, `git_remote_list`, `git_run` |
 | **extension_platform** | `extension_platform_bootstrap`, `extension_platform_status`, `extension_platform_restart`, `extension_platform_stop`, `extension_platform_init_data` |

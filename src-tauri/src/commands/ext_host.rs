@@ -262,7 +262,7 @@ fn spawn_host_process(
     )
     .map_err(|e| format!("failed to encode search paths: {e}"))?;
 
-    let init_data_file = std::env::temp_dir().join(format!("sidex-init-{}.json", &session_id));
+    let init_data_file = std::env::temp_dir().join(format!("sidex-init-{}.json", session_id));
     std::fs::write(&init_data_file, &init_data_json)
         .map_err(|e| format!("failed to write init data file: {e}"))?;
 

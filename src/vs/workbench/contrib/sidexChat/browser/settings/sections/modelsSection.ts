@@ -1,4 +1,5 @@
 import type { SettingsSection } from '../sidexSettingsPanel.js';
+import { createCustomDropdown, type DropdownOption } from '../sidexSettingsStyles.js';
 import { restartServer } from '../../localServer.js';
 
 type Invoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;

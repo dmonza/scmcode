@@ -12,7 +12,7 @@ pub fn run(args: &Args, ctx: &ToolContext) -> Result<String> {
     if command.is_empty() {
         bail!("command is required");
     }
-    let timeout_sec = get_int(args, "timeout", 30).min(300).max(1) as u64;
+    let timeout_sec = get_int(args, "timeout", 30).clamp(1, 300) as u64;
     let work_dir = resolve_path(ctx, get_str_or(args, "working_directory", &ctx.cwd));
 
     if !std::path::Path::new(&work_dir).is_dir() {

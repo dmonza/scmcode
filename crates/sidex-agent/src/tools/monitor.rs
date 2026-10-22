@@ -179,7 +179,7 @@ pub fn poll(args: &Args, _ctx: &ToolContext) -> Result<String> {
     if id.is_empty() {
         bail!("id is required for monitor_poll");
     }
-    let max_lines = get_int(args, "lines", 50).max(1).min(5000) as usize;
+    let max_lines = get_int(args, "lines", 50).clamp(1, 5000) as usize;
 
     let mut monitors = MONITORS.lock().unwrap();
     let session = monitors

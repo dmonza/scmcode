@@ -44,7 +44,7 @@ pub fn load_skills(project_dir: &Path) -> Vec<Skill> {
                     skills.push(skill);
                 }
             }
-        } else if path.extension().map_or(false, |e| e == "md") {
+        } else if path.extension().is_some_and(|e| e == "md") {
             if let Some(skill) = parse_skill_file(&path) {
                 skills.push(skill);
             }

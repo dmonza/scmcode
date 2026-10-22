@@ -114,10 +114,7 @@ impl McpConnection {
             .kill_on_drop(true);
 
         #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
-        }
+        cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
 
         let mut child = cmd.spawn().map_err(|e| {
             format!(
@@ -408,7 +405,7 @@ impl McpConnection {
         self.child
             .try_wait()
             .ok()
-            .map_or(true, |status| status.is_none())
+            .is_none_or(|status| status.is_none())
     }
 
     async fn shutdown(&mut self) {

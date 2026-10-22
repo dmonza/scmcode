@@ -120,11 +120,6 @@ impl LocalServer {
         self.with_proc(Self::child_alive)
     }
 
-    /// WebSocket origin the workbench should connect to.
-    pub fn ws_url(&self) -> String {
-        format!("ws://127.0.0.1:{}", self.port())
-    }
-
     pub fn http_url(&self) -> String {
         format!("http://127.0.0.1:{}", self.port())
     }
@@ -261,17 +256,15 @@ fn find_server_binary(app: &AppHandle) -> Option<PathBuf> {
     // there, but a launched .app does not).
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let cwd = std::env::current_dir().unwrap_or_default();
-    for candidate in [
-        manifest_dir.join("../sidexai/sidex-server").join(SERVER_BIN),
+    [
+        manifest_dir
+            .join("../sidexai/sidex-server")
+            .join(SERVER_BIN),
         cwd.join("sidexai/sidex-server").join(SERVER_BIN),
         cwd.join("../sidexai/sidex-server").join(SERVER_BIN),
-    ] {
-        if candidate.is_file() {
-            return Some(candidate);
-        }
-    }
-
-    None
+    ]
+    .into_iter()
+    .find(|candidate| candidate.is_file())
 }
 
 /// Block until the server answers its health endpoint, or the timeout expires.

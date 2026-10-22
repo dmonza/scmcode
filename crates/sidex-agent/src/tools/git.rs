@@ -11,7 +11,7 @@ pub fn status(args: &Args, ctx: &ToolContext) -> Result<String> {
 }
 
 pub fn log(args: &Args, ctx: &ToolContext) -> Result<String> {
-    let count = get_int(args, "count", 10).max(1).min(100);
+    let count = get_int(args, "count", 10).clamp(1, 100);
     git_cmd(
         &ctx.cwd,
         &["log", &format!("-{count}"), "--oneline", "--decorate"],

@@ -104,7 +104,7 @@ impl ContextPredictor {
         const MAX_COOCCURRENCE_ENTRIES: usize = 5_000;
         if self.cooccurrence.len() > MAX_COOCCURRENCE_ENTRIES {
             let mut entries: Vec<((String, String), u32)> = self.cooccurrence.drain().collect();
-            entries.sort_by(|a, b| b.1.cmp(&a.1));
+            entries.sort_by_key(|e| std::cmp::Reverse(e.1));
             entries.truncate(MAX_COOCCURRENCE_ENTRIES / 2);
             self.cooccurrence = entries.into_iter().collect();
         }
@@ -208,7 +208,7 @@ impl ContextPredictor {
                 n.file_path != accessed_file
                     && Path::new(&n.file_path)
                         .parent()
-                        .map_or(false, |p| p.to_string_lossy() == dir)
+                        .is_some_and(|p| p.to_string_lossy() == dir)
             })
             .map(|n| n.file_path.as_str())
             .collect();

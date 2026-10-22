@@ -208,6 +208,12 @@ impl Bm25Index {
     }
 }
 
+impl Default for Bm25Index {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn tokenize(content: &str, name: Option<&str>, file_path: &str, kind: &ChunkKind) -> Vec<String> {
     let mut tokens = Vec::new();
 

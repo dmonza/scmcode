@@ -49,9 +49,12 @@ jobs:
             librsvg2-dev \
             libssl-dev
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      # Pinned: a new stable release adds lints that `-D warnings` turns into
+      # errors. Bump on purpose and fix the new lints in the same change.
+      - name: Install Rust 1.99.0
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.99.0"
           components: clippy
 
       - name: Rust cache

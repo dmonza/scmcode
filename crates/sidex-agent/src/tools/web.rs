@@ -10,7 +10,7 @@ pub fn search(args: &Args, _ctx: &ToolContext) -> Result<String> {
         bail!("query parameter is required");
     }
 
-    let encoded = urlencoding::encode(&query);
+    let encoded = urlencoding::encode(query);
     let url = format!("https://html.duckduckgo.com/html/?q={}", encoded);
 
     let output = no_console(Command::new("curl"))
@@ -58,7 +58,7 @@ pub fn fetch(args: &Args, _ctx: &ToolContext) -> Result<String> {
             "15",
             "-H",
             "User-Agent: scmCode/1.0",
-            &url,
+            url,
         ])
         .output()?;
 

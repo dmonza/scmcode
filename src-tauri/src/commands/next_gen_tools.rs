@@ -651,7 +651,7 @@ pub async fn analyze_error(
     exit_code: i32,
 ) -> Result<ErrorAnalysis, String> {
     let diagnosis = if output.contains("ModuleNotFoundError") || output.contains("ImportError") {
-        format!("Missing import/module. A required dependency is not installed or the import path is wrong.")
+        "Missing import/module. A required dependency is not installed or the import path is wrong.".to_string()
     } else if output.contains("SyntaxError") {
         "Syntax error in the code. Check for unclosed brackets, missing colons, or invalid tokens."
             .into()
@@ -854,8 +854,8 @@ fn generate_unified_diff(old: &str, new: &str, path: &str) -> String {
             j += 1;
         } else {
             let ctx_start = i.saturating_sub(2);
-            for ci in ctx_start..i {
-                diff.push_str(&format!(" {}\n", old_lines[ci]));
+            for line in &old_lines[ctx_start..i] {
+                diff.push_str(&format!(" {line}\n"));
             }
             while i < old_lines.len() && (j >= new_lines.len() || old_lines[i] != new_lines[j]) {
                 diff.push_str(&format!("-{}\n", old_lines[i]));

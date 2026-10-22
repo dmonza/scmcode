@@ -6165,7 +6165,6 @@ dependencies = [
  "arboard",
  "base64 0.22.1",
  "chrono",
- "crossbeam",
  "dashmap",
  "dirs 5.0.1",
  "dotenvy",

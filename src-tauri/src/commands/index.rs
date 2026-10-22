@@ -1,9 +1,8 @@
 //! High-performance in-memory text indexing for code search
 //!
-//! This module provides fast text search capabilities using:
+//! This module provides:
 //! - Inverted index (word -> locations)
 //! - Trigram indexing for fuzzy/substring search
-//! - Incremental updates for file changes
 //! - Multi-threaded indexing with Rayon
 
 use dashmap::DashMap;
@@ -18,7 +17,6 @@ use std::sync::Arc;
 use tauri::State;
 
 const DEFAULT_MAX_FILE_SIZE: u64 = 1024 * 1024; // 1MB
-const DEFAULT_MAX_RESULTS: usize = 1000;
 #[allow(dead_code)]
 const BINARY_CHECK_BYTES: usize = 8192; // 8KB
 
@@ -48,45 +46,6 @@ impl Default for IndexOptions {
     }
 }
 
-/// Options for searching the index
-#[derive(Debug, Clone, Deserialize)]
-pub struct SearchOptions {
-    pub case_sensitive: bool,
-    pub max_results: Option<usize>,
-    pub whole_word: bool,
-    pub regex: bool,
-    pub file_pattern: Option<String>,
-}
-
-impl Default for SearchOptions {
-    fn default() -> Self {
-        Self {
-            case_sensitive: false,
-            max_results: Some(DEFAULT_MAX_RESULTS),
-            whole_word: false,
-            regex: false,
-            file_pattern: None,
-        }
-    }
-}
-
-/// Search result containing location and context
-#[derive(Debug, Clone, Serialize)]
-pub struct SearchResult {
-    pub path: String,
-    pub line_number: usize,
-    pub column: usize,
-    pub line_content: String,
-    pub score: f32,
-}
-
-/// File change event for incremental updates
-#[derive(Debug, Clone, Deserialize)]
-pub struct FileChange {
-    pub path: String,
-    pub change_type: String, // "created", "modified", "deleted"
-}
-
 /// Statistics about the index
 #[derive(Debug, Clone, Serialize)]
 pub struct IndexStats {
@@ -100,20 +59,17 @@ pub struct IndexStats {
 #[derive(Debug, Clone)]
 struct WordLocation {
     file_id: u32,
-    line: usize,
-    column: usize,
 }
 
 /// Information stored about each indexed file
 #[derive(Debug, Clone)]
 struct FileInfo {
-    path: String,
     words: HashSet<String>, // Words present in this file (for removal)
 }
 
 /// Inverted index for fast text search
 pub struct InvertedIndex {
-    /// word -> list of (`file_id`, line, column)
+    /// word -> list of `file_id`s it occurs in
     word_index: DashMap<String, Vec<WordLocation>>,
     /// trigram -> list of words containing it (for fuzzy search)
     trigram_index: Option<DashMap<String, Vec<String>>>,
@@ -211,20 +167,15 @@ impl InvertedIndex {
         let mut file_words: HashSet<String> = HashSet::new();
 
         // Index each line
-        for (line_idx, line) in text.lines().enumerate() {
+        for line in text.lines() {
             for mat in self.word_regex.find_iter(line) {
                 let word = mat.as_str();
-                let column = mat.start();
                 let normalized_word = word.to_lowercase();
 
                 self.word_index
                     .entry(normalized_word.clone())
                     .or_default()
-                    .push(WordLocation {
-                        file_id,
-                        line: line_idx + 1,
-                        column: column + 1,
-                    });
+                    .push(WordLocation { file_id });
 
                 self.add_trigrams(&normalized_word);
                 file_words.insert(normalized_word);
@@ -237,13 +188,7 @@ impl InvertedIndex {
         }
 
         // Store file info
-        self.files.insert(
-            file_id,
-            FileInfo {
-                path: path_str.clone(),
-                words: file_words,
-            },
-        );
+        self.files.insert(file_id, FileInfo { words: file_words });
 
         Ok(())
     }
@@ -264,214 +209,6 @@ impl InvertedIndex {
                 }
             }
         }
-    }
-
-    /// Search for exact word matches
-    fn search_exact(&self, query: &str, options: &SearchOptions) -> Vec<SearchResult> {
-        let max_results = options.max_results.unwrap_or(DEFAULT_MAX_RESULTS);
-        let mut results = Vec::new();
-
-        let search_word = if options.case_sensitive {
-            query.to_string()
-        } else {
-            query.to_lowercase()
-        };
-
-        // Check file pattern if specified
-        let file_pattern = options
-            .file_pattern
-            .as_ref()
-            .and_then(|p| globset::Glob::new(p).ok().map(|g| g.compile_matcher()));
-
-        if let Some(locations) = self.word_index.get(&search_word) {
-            for loc in locations.iter() {
-                if results.len() >= max_results {
-                    break;
-                }
-
-                if let Some(file_info) = self.files.get(&loc.file_id) {
-                    // Filter by file pattern
-                    if let Some(ref pattern) = file_pattern {
-                        if !pattern.is_match(&file_info.path) {
-                            continue;
-                        }
-                    }
-
-                    // Get line content
-                    if let Ok(line_content) = get_line_at(&file_info.path, loc.line) {
-                        results.push(SearchResult {
-                            path: file_info.path.clone(),
-                            line_number: loc.line,
-                            column: loc.column,
-                            line_content,
-                            score: 1.0,
-                        });
-                    }
-                }
-            }
-        }
-
-        results
-    }
-
-    /// Search using trigram index for fuzzy matching
-    fn search_fuzzy(&self, query: &str, options: &SearchOptions) -> Vec<SearchResult> {
-        let max_results = options.max_results.unwrap_or(DEFAULT_MAX_RESULTS);
-
-        if query.len() < 3 {
-            return self.search_exact(query, options);
-        }
-
-        let query_lower = query.to_lowercase();
-        let mut candidate_words: Option<HashSet<String>> = None;
-
-        // Find candidate words using trigrams
-        if let Some(ref trigram_index) = self.trigram_index {
-            for i in 0..=query_lower.len().saturating_sub(3) {
-                let trigram = &query_lower[i..i + 3];
-
-                if let Some(words) = trigram_index.get(trigram) {
-                    let word_set: HashSet<String> = words.iter().cloned().collect();
-
-                    candidate_words = match candidate_words {
-                        Some(existing) => {
-                            let intersection: HashSet<String> =
-                                existing.intersection(&word_set).cloned().collect();
-                            if intersection.is_empty() {
-                                // No intersection, fall back to union
-                                Some(existing.union(&word_set).cloned().collect())
-                            } else {
-                                Some(intersection)
-                            }
-                        }
-                        None => Some(word_set),
-                    };
-                }
-            }
-        }
-
-        let Some(candidates) = candidate_words else {
-            return self.search_exact(query, options);
-        };
-
-        // Score and filter candidates
-        let mut scored_results: Vec<(SearchResult, f32)> = Vec::new();
-
-        // Check file pattern if specified
-        let file_pattern = options
-            .file_pattern
-            .as_ref()
-            .and_then(|p| globset::Glob::new(p).ok().map(|g| g.compile_matcher()));
-
-        for word in candidates {
-            if let Some(locations) = self.word_index.get(&word) {
-                for loc in locations.iter() {
-                    if scored_results.len() >= max_results * 2 {
-                        break;
-                    }
-
-                    if let Some(file_info) = self.files.get(&loc.file_id) {
-                        // Filter by file pattern
-                        if let Some(ref pattern) = file_pattern {
-                            if !pattern.is_match(&file_info.path) {
-                                continue;
-                            }
-                        }
-
-                        // Calculate relevance score
-                        let score = calculate_score(query, &word);
-
-                        if score > 0.3 {
-                            if let Ok(line_content) = get_line_at(&file_info.path, loc.line) {
-                                // Verify the query is actually in the line
-                                let line_check = if options.case_sensitive {
-                                    line_content.clone()
-                                } else {
-                                    line_content.to_lowercase()
-                                };
-
-                                if line_check.contains(&query_lower) {
-                                    scored_results.push((
-                                        SearchResult {
-                                            path: file_info.path.clone(),
-                                            line_number: loc.line,
-                                            column: loc.column,
-                                            line_content,
-                                            score,
-                                        },
-                                        score,
-                                    ));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Sort by score and limit results
-        scored_results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-        scored_results.truncate(max_results);
-
-        scored_results.into_iter().map(|(r, _)| r).collect()
-    }
-
-    /// Search with regex pattern
-    fn search_regex(
-        &self,
-        pattern: &str,
-        options: &SearchOptions,
-    ) -> Result<Vec<SearchResult>, String> {
-        let regex = if options.case_sensitive {
-            Regex::new(pattern).map_err(|e| e.to_string())?
-        } else {
-            Regex::new(&format!("(?i){pattern}")).map_err(|e| e.to_string())?
-        };
-
-        let max_results = options.max_results.unwrap_or(DEFAULT_MAX_RESULTS);
-        let mut results = Vec::new();
-
-        // Check file pattern if specified
-        let file_pattern = options
-            .file_pattern
-            .as_ref()
-            .and_then(|p| globset::Glob::new(p).ok().map(|g| g.compile_matcher()));
-
-        // Scan all indexed files (this is slower but necessary for regex)
-        for entry in &self.files {
-            if results.len() >= max_results {
-                break;
-            }
-
-            let file_info = entry.value();
-
-            // Filter by file pattern
-            if let Some(ref pat) = file_pattern {
-                if !pat.is_match(&file_info.path) {
-                    continue;
-                }
-            }
-
-            if let Ok(content) = fs::read_to_string(&file_info.path) {
-                for (line_idx, line) in content.lines().enumerate() {
-                    if results.len() >= max_results {
-                        break;
-                    }
-
-                    if let Some(mat) = regex.find(line) {
-                        results.push(SearchResult {
-                            path: file_info.path.clone(),
-                            line_number: line_idx + 1,
-                            column: mat.start() + 1,
-                            line_content: line.to_string(),
-                            score: 1.0,
-                        });
-                    }
-                }
-            }
-        }
-
-        Ok(results)
     }
 
     /// Get statistics about the index
@@ -497,93 +234,6 @@ impl InvertedIndex {
     }
 }
 
-/// Calculate relevance score between query and word
-fn calculate_score(query: &str, word: &str) -> f32 {
-    let query_lower = query.to_lowercase();
-    let word_lower = word.to_lowercase();
-
-    // Exact match
-    if query_lower == word_lower {
-        return 1.0;
-    }
-
-    // Prefix match
-    if word_lower.starts_with(&query_lower) {
-        return 0.9;
-    }
-
-    // Contains query
-    if word_lower.contains(&query_lower) {
-        return 0.8;
-    }
-
-    // Subsequence match
-    if is_subsequence(&query_lower, &word_lower) {
-        return 0.6;
-    }
-
-    // Calculate Levenshtein distance ratio
-    let distance = levenshtein_distance(&query_lower, &word_lower);
-    let max_len = query_lower.len().max(word_lower.len());
-
-    if max_len == 0 {
-        return 0.0;
-    }
-
-    #[allow(clippy::cast_precision_loss)]
-    let similarity = 1.0 - (distance as f32 / max_len as f32);
-    similarity * 0.5 // Scale down fuzzy matches
-}
-
-/// Check if query is a subsequence of word
-fn is_subsequence(query: &str, word: &str) -> bool {
-    let mut query_chars = query.chars();
-    let mut current = query_chars.next();
-
-    for c in word.chars() {
-        if let Some(qc) = current {
-            if qc == c {
-                current = query_chars.next();
-            }
-        } else {
-            break;
-        }
-    }
-
-    current.is_none()
-}
-
-/// Calculate Levenshtein distance between two strings
-fn levenshtein_distance(a: &str, b: &str) -> usize {
-    let a_chars: Vec<char> = a.chars().collect();
-    let b_chars: Vec<char> = b.chars().collect();
-    let a_len = a_chars.len();
-    let b_len = b_chars.len();
-
-    if a_len == 0 {
-        return b_len;
-    }
-    if b_len == 0 {
-        return a_len;
-    }
-
-    let mut prev_row: Vec<usize> = (0..=b_len).collect();
-    let mut curr_row = vec![0; b_len + 1];
-
-    for i in 1..=a_len {
-        curr_row[0] = i;
-        for j in 1..=b_len {
-            let cost = usize::from(a_chars[i - 1] != b_chars[j - 1]);
-            curr_row[j] = (curr_row[j - 1] + 1)
-                .min(prev_row[j] + 1)
-                .min(prev_row[j - 1] + cost);
-        }
-        std::mem::swap(&mut prev_row, &mut curr_row);
-    }
-
-    prev_row[b_len]
-}
-
 /// Check if a file is binary by looking for null bytes in the first N bytes
 #[allow(dead_code)]
 fn is_binary_file(path: &Path) -> Result<bool, String> {
@@ -592,19 +242,6 @@ fn is_binary_file(path: &Path) -> Result<bool, String> {
     let mut buf = [0u8; BINARY_CHECK_BYTES];
     let n = file.read(&mut buf).map_err(|e| e.to_string())?;
     Ok(buf[..n].contains(&0))
-}
-
-/// Get the content of a specific line from a file
-fn get_line_at(path: &str, line_number: usize) -> Result<String, String> {
-    use std::io::BufRead;
-    let file = fs::File::open(path).map_err(|e| e.to_string())?;
-    let reader = std::io::BufReader::new(file);
-    let target = line_number.saturating_sub(1);
-    reader
-        .lines()
-        .nth(target)
-        .ok_or_else(|| "Line not found".to_string())?
-        .map_err(|e| e.to_string())
 }
 
 /// Collect all files to index in a directory
@@ -713,57 +350,6 @@ pub fn index_build(
     Ok(state.index.stats())
 }
 
-/// Search the index
-#[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn index_search(
-    state: State<'_, Arc<IndexStore>>,
-    query: String,
-    options: Option<SearchOptions>,
-) -> Result<Vec<SearchResult>, String> {
-    if query.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let options = options.unwrap_or_default();
-
-    if options.regex {
-        state.index.search_regex(&query, &options)
-    } else if options.whole_word {
-        Ok(state.index.search_exact(&query, &options))
-    } else {
-        // Default to fuzzy search for partial matches
-        Ok(state.index.search_fuzzy(&query, &options))
-    }
-}
-
-/// Update index for changed files
-#[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn index_update(
-    state: State<'_, Arc<IndexStore>>,
-    changes: Vec<FileChange>,
-) -> Result<(), String> {
-    let max_file_size = DEFAULT_MAX_FILE_SIZE;
-
-    for change in changes {
-        match change.change_type.as_str() {
-            "created" | "modified" => {
-                let path = Path::new(&change.path);
-                if path.exists() {
-                    state.index.index_file(path, max_file_size)?;
-                }
-            }
-            "deleted" => {
-                state.index.remove_file(&change.path);
-            }
-            _ => {}
-        }
-    }
-
-    Ok(())
-}
-
 /// Get index statistics
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps, clippy::needless_pass_by_value)]
@@ -777,31 +363,4 @@ pub fn index_stats(state: State<'_, Arc<IndexStore>>) -> Result<IndexStats, Stri
 pub fn index_clear(state: State<'_, Arc<IndexStore>>) -> Result<(), String> {
     state.index.clear();
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_calculate_score() {
-        assert!((calculate_score("hello", "hello") - 1.0).abs() < f32::EPSILON);
-        assert!((calculate_score("hel", "hello") - 0.9).abs() < f32::EPSILON);
-        assert!(calculate_score("ell", "hello") > 0.5);
-    }
-
-    #[test]
-    fn test_is_subsequence() {
-        assert!(is_subsequence("abc", "aabbcc"));
-        assert!(!is_subsequence("abc", "acb"));
-        assert!(is_subsequence("", "anything"));
-    }
-
-    #[test]
-    fn test_levenshtein_distance() {
-        assert_eq!(levenshtein_distance("kitten", "sitting"), 3);
-        assert_eq!(levenshtein_distance("", ""), 0);
-        assert_eq!(levenshtein_distance("a", ""), 1);
-        assert_eq!(levenshtein_distance("", "a"), 1);
-    }
 }

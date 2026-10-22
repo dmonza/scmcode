@@ -65,17 +65,6 @@ pub fn get_all_env() -> std::collections::HashMap<String, String> {
         .collect()
 }
 
-#[tauri::command]
-pub fn get_shell() -> String {
-    env::var("SHELL").unwrap_or_else(|_| {
-        if cfg!(target_os = "windows") {
-            super::terminal::resolve_windows_shell()
-        } else {
-            "/bin/sh".to_string()
-        }
-    })
-}
-
 #[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub fn get_user_data_dir(app: tauri::AppHandle) -> Result<String, String> {

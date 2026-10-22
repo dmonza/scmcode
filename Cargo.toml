@@ -93,7 +93,9 @@ complexity = { level = "warn", priority = -1 }
 perf = { level = "warn", priority = -1 }
 style = { level = "warn", priority = -1 }
 suspicious = { level = "warn", priority = -1 }
-pedantic = { level = "warn", priority = -1 }
+# scmCode: pedantic is off. Each Rust release added pedantic lints that flagged
+# hundreds of style nits in upstream code and broke CI (docs/issues/ISSUE-0006-*).
+pedantic = { level = "allow", priority = -1 }
 must_use_candidate = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"

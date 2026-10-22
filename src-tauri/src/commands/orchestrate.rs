@@ -377,6 +377,7 @@ pub async fn orch_spawn_task(
     Ok(run_id)
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn run_agent_session(
     server_url: &str,
     system_prompt: &str,
@@ -390,7 +391,7 @@ async fn run_agent_session(
     use futures_util::{SinkExt, StreamExt};
     use tokio_tungstenite::{connect_async, tungstenite::Message};
 
-    let ws_url = format!("{}/v1/stream", server_url.replace("ws://", "ws://"));
+    let ws_url = format!("{server_url}/v1/stream");
     let (ws_stream, _) = connect_async(&ws_url)
         .await
         .map_err(|e| format!("WebSocket connect failed: {e}"))?;

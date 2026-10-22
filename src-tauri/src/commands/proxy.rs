@@ -127,33 +127,6 @@ async fn read_body_limited(response: reqwest::Response) -> Result<Vec<u8>, Strin
 
 #[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
-pub async fn fetch_url(url: String) -> Result<Vec<u8>, String> {
-    let parsed = validate_url(&url)?;
-    let client = get_client();
-    let response = client
-        .get(parsed)
-        .send()
-        .await
-        .map_err(|e| format!("fetch failed: {e}"))?;
-    read_body_limited(response).await
-}
-
-#[allow(clippy::needless_pass_by_value)]
-#[tauri::command]
-pub async fn fetch_url_text(url: String) -> Result<String, String> {
-    let parsed = validate_url(&url)?;
-    let client = get_client();
-    let response = client
-        .get(parsed)
-        .send()
-        .await
-        .map_err(|e| format!("fetch failed: {e}"))?;
-    let bytes = read_body_limited(response).await?;
-    String::from_utf8(bytes).map_err(|e| format!("invalid UTF-8: {e}"))
-}
-
-#[allow(clippy::needless_pass_by_value)]
-#[tauri::command]
 pub async fn proxy_request(
     url: String,
     method: String,

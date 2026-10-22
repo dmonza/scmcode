@@ -77,7 +77,6 @@ memchr = "2"
 
 # Process & terminal management
 which = "6"
-crossbeam = "0.8"
 
 # WebSocket for orchestration
 tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
@@ -139,7 +138,8 @@ complexity = { level = "warn", priority = -1 }
 perf = { level = "warn", priority = -1 }
 style = { level = "warn", priority = -1 }
 suspicious = { level = "warn", priority = -1 }
-pedantic = { level = "warn", priority = -1 }
+# scmCode: pedantic is off, as in the root Cargo.toml (docs/issues/ISSUE-0006-*).
+pedantic = { level = "allow", priority = -1 }
 must_use_candidate = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"

@@ -9,7 +9,7 @@ fn estimate_tokens(content: &str) -> usize {
 /// Assembles chunks from ranked search results within a token budget.
 ///
 /// Walks results in score order, adding chunks until the budget is exhausted.
-pub fn assemble_context<'a>(results: &'a [SearchResult], max_tokens: usize) -> Vec<&'a Chunk> {
+pub fn assemble_context(results: &[SearchResult], max_tokens: usize) -> Vec<&Chunk> {
     let mut selected = Vec::new();
     let mut used_tokens = 0;
 

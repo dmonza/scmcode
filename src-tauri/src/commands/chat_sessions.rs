@@ -120,7 +120,7 @@ pub fn session_load(
         .map_err(|e| e.to_string())
 }
 
-#[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::needless_pass_by_value, clippy::too_many_arguments)]
 #[tauri::command]
 pub fn session_save_message(
     state: State<'_, Arc<SidexDbState>>,
