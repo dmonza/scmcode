@@ -71,7 +71,7 @@ vte = "0.13"
 rusqlite = { version = "0.31", features = ["bundled", "backup"] }
 
 # Remote
-russh = "0.46"
+russh = "0.64"
 bollard = "0.18"
 tokio-tungstenite = "0.26"
 

@@ -14,7 +14,7 @@ use std::time::{Duration, Instant, SystemTime};
 
 use anyhow::{bail, Context, Result};
 use russh::client;
-use russh_keys::key;
+use russh::keys::{load_secret_key, PrivateKey, PrivateKeyWithHashAlg, PublicKeyOrCertificate};
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
@@ -333,7 +333,7 @@ pub enum KnownHostStatus {
 pub fn check_known_host(
     hostname: &str,
     port: u16,
-    _server_key: &key::PublicKey,
+    _server_key: &russh::keys::PublicKey,
 ) -> KnownHostStatus {
     let path = match dirs::home_dir() {
         Some(h) => h.join(".ssh/known_hosts"),
@@ -479,13 +479,12 @@ pub fn parse_ssh_config(path: &Path) -> Result<Vec<SshHostConfig>> {
 
 pub struct ClientHandler;
 
-#[async_trait::async_trait]
 impl client::Handler for ClientHandler {
     type Error = anyhow::Error;
 
     async fn check_server_key(
         &mut self,
-        _server_public_key: &key::PublicKey,
+        _server_public_key: &PublicKeyOrCertificate,
     ) -> Result<bool, Self::Error> {
         Ok(true)
     }
@@ -560,10 +559,11 @@ impl SshConnectionPool {
                 ref path,
                 ref passphrase,
             } => {
-                let pair = russh_keys::load_secret_key(path, passphrase.as_deref())
+                let pair = load_secret_key(path, passphrase.as_deref())
                     .with_context(|| format!("loading SSH key {}", path.display()))?;
+                let key = Self::with_best_hash(&session, pair).await?;
                 session
-                    .authenticate_publickey(user, Arc::new(pair))
+                    .authenticate_publickey(user, key)
                     .await
                     .context("SSH pubkey auth")?
             }
@@ -574,10 +574,11 @@ impl SshConnectionPool {
                 let Some(kp) = default_key.filter(|p| p.exists()) else {
                     bail!("SSH agent auth: no default key found in ~/.ssh/");
                 };
-                let pair = russh_keys::load_secret_key(&kp, None)
+                let pair = load_secret_key(&kp, None)
                     .with_context(|| format!("loading SSH key {}", kp.display()))?;
+                let key = Self::with_best_hash(&session, pair).await?;
                 session
-                    .authenticate_publickey(user, Arc::new(pair))
+                    .authenticate_publickey(user, key)
                     .await
                     .context("SSH agent auth")?
             }
@@ -585,10 +586,24 @@ impl SshConnectionPool {
                 bail!("keyboard-interactive auth not yet supported in batch mode")
             }
         };
-        if !ok {
+        if !ok.success() {
             bail!("SSH authentication failed for {user}@{host}:{port}");
         }
         Ok(session)
+    }
+
+    /// Pairs a key with the RSA signature hash the server prefers, so RSA keys
+    /// don't fall back to SHA-1 (`ssh-rsa`). Ignored for non-RSA keys.
+    async fn with_best_hash(
+        session: &client::Handle<ClientHandler>,
+        key: PrivateKey,
+    ) -> Result<PrivateKeyWithHashAlg> {
+        let hash_alg = session
+            .best_supported_rsa_hash()
+            .await
+            .context("SSH negotiating RSA signature hash")?
+            .flatten();
+        Ok(PrivateKeyWithHashAlg::new(Arc::new(key), hash_alg))
     }
 
     pub async fn evict_idle(&self) {
@@ -1091,7 +1106,7 @@ Host *.example.com
     #[test]
     fn known_host_unknown() {
         let fake_key =
-            key::PublicKey::Ed25519(russh_keys::key::ed25519::PublicKey::from_bytes(&[0u8; 32]));
+            russh::keys::PublicKey::from(russh::keys::ssh_key::public::Ed25519PublicKey([0u8; 32]));
         let status = check_known_host("nonexistent.test", 22, &fake_key);
         matches!(status, KnownHostStatus::Unknown { .. });
     }

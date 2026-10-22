@@ -51,7 +51,7 @@ reqwest = { version = "0.12", features = [
 
 # Compression & encoding
 flate2 = "1"
-zip = "2"
+zip = "9"
 base64 = "0.22"
 
 # Crypto
@@ -88,13 +88,13 @@ open = "5"
 url = "2"
 
 # WASM extension runtime
-wasmtime = { version = "43", default-features = false, features = [
+wasmtime = { version = "49", default-features = false, features = [
   "runtime",
   "component-model",
   "cranelift",
   "async",
 ] }
-wasmtime-wasi = "43"
+wasmtime-wasi = "49"
 toml = "0.8"
 anyhow = "1"
 sidex-db = { path = "../crates/sidex-db" }
