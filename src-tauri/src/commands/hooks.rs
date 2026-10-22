@@ -17,12 +17,10 @@ fn global_sidex_config_dir() -> PathBuf {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct HookConfig {
     pub hooks: Vec<Hook>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Hook {

@@ -81,12 +81,18 @@ impl HybridAssembler {
             ContextRegion::SearchResults => {
                 if let Some(results) = data.downcast_ref::<Vec<SearchResult>>() {
                     Some(self.toon.serialize(results))
-                } else { data.downcast_ref::<Vec<Chunk>>().map(|chunks| self.toon.serialize(chunks)) }
+                } else {
+                    data.downcast_ref::<Vec<Chunk>>()
+                        .map(|chunks| self.toon.serialize(chunks))
+                }
             }
             ContextRegion::CodeContent => {
                 if let Some(chunks) = data.downcast_ref::<Vec<Chunk>>() {
                     Some(toon::to_toon_nested(chunks))
-                } else { data.downcast_ref::<Chunk>().map(|chunk| toon::to_toon_nested(std::slice::from_ref(chunk))) }
+                } else {
+                    data.downcast_ref::<Chunk>()
+                        .map(|chunk| toon::to_toon_nested(std::slice::from_ref(chunk)))
+                }
             }
             ContextRegion::Rules => {
                 if let Some((title, body)) = data.downcast_ref::<(&str, &str)>() {
@@ -105,17 +111,19 @@ impl HybridAssembler {
                     None
                 }
             }
-            ContextRegion::Diagnostics => {
-                data.downcast_ref::<Vec<Diagnostic>>().map(|diags| format_diagnostics(diags))
-            }
+            ContextRegion::Diagnostics => data
+                .downcast_ref::<Vec<Diagnostic>>()
+                .map(|diags| format_diagnostics(diags)),
             ContextRegion::AgentMessage => {
                 if let Some(msg) = data.downcast_ref::<String>() {
                     Some(msg.clone())
-                } else { data.downcast_ref::<&str>().map(|msg| (*msg).to_string()) }
+                } else {
+                    data.downcast_ref::<&str>().map(|msg| (*msg).to_string())
+                }
             }
-            ContextRegion::ConversationHistory => {
-                data.downcast_ref::<Vec<ConversationMessage>>().map(|messages| format_conversation(messages))
-            }
+            ContextRegion::ConversationHistory => data
+                .downcast_ref::<Vec<ConversationMessage>>()
+                .map(|messages| format_conversation(messages)),
         }
     }
 }

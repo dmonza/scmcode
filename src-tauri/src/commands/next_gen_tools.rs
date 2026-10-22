@@ -651,7 +651,8 @@ pub async fn analyze_error(
     exit_code: i32,
 ) -> Result<ErrorAnalysis, String> {
     let diagnosis = if output.contains("ModuleNotFoundError") || output.contains("ImportError") {
-        "Missing import/module. A required dependency is not installed or the import path is wrong.".to_string()
+        "Missing import/module. A required dependency is not installed or the import path is wrong."
+            .to_string()
     } else if output.contains("SyntaxError") {
         "Syntax error in the code. Check for unclosed brackets, missing colons, or invalid tokens."
             .into()
