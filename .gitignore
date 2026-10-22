@@ -115,6 +115,9 @@ MEMORY.md
 
 .claude/
 
+# Security audit findings: kept local until fixed (see SECURITY.md)
+/docs/audit/
+
 # Local portable toolchains (e.g. Zig as the CGO C compiler for sidex-server)
 .tools/
 

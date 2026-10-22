@@ -119,7 +119,20 @@ async function boot() {
 		? decodeURIComponent(openedParam.split('/').pop() || 'scmCode').replace(/\.code-workspace$/, '')
 		: 'scmCode';
 
+	// scmCode: webviews load from their own loopback origin, one per webview
+	// (src-tauri/src/webview_host.rs). Without it they stay disabled.
+	let webviewEndpoint = '';
+	if ((globalThis as any).__SIDEX_TAURI__) {
+		try {
+			const { invoke } = await import('@tauri-apps/api/core');
+			webviewEndpoint = await invoke<string>('webview_host_endpoint');
+		} catch (e) {
+			console.error('[scmCode] webview host unavailable, webviews are disabled:', e);
+		}
+	}
+
 	const options: any = {
+		webviewEndpoint,
 		initialColorTheme: {
 			themeType: 'dark'
 		},

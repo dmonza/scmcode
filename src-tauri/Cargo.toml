@@ -126,6 +126,15 @@ urlencoding = "2.1.3"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+[features]
+# scmCode: runtime self-test of the webview sandbox, run by CI on every OS
+# (src/selftest.rs). Never enabled in release builds.
+selftest = []
+
+# scmCode: Tauri's mock runtime, for the IPC access-control test (tests/acl.rs).
+[dev-dependencies]
+tauri = { version = "2.10.3", features = ["test"] }
+
 [lints.rust]
 unsafe_code = "deny"
 

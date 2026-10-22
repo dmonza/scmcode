@@ -89,8 +89,8 @@ func NewHookRegistry() *HookRegistry {
 }
 
 // Register adds a hook handler for the given event. If a hook with the same
-// name is already registered for that event it is replaced (this lets a
-// workspace hooks.json override a built-in default instead of double-firing).
+// name is already registered for that event it is replaced (so registering a
+// hook twice doesn't make it fire twice). LoadFromConfig never replaces one.
 // Returns a unique hook ID that can be used to unregister the hook later.
 func (r *HookRegistry) Register(event HookEvent, name string, handler HookHandler, priority int) string {
 	id := fmt.Sprintf("hook_%d", r.nextID.Add(1))
@@ -177,7 +177,7 @@ func (r *HookRegistry) HasHandlers(event HookEvent) bool {
 	return len(r.handlers[event]) > 0
 }
 
-// hookConfigFile represents the JSON structure of .sidex/hooks.json
+// hookConfigFile represents the JSON structure of ~/.scmcode/agent-hooks.json
 type hookConfigFile struct {
 	Hooks []hookConfigEntry `json:"hooks"`
 }
@@ -191,9 +191,11 @@ type hookConfigEntry struct {
 	Config   map[string]any `json:"config,omitempty"`
 }
 
-// LoadFromConfig reads hook definitions from a JSON file (typically .sidex/hooks.json)
+// LoadFromConfig reads hook definitions from a JSON file (~/.scmcode/agent-hooks.json)
 // and registers built-in hooks referenced by name. Custom command hooks are registered
 // as shell-exec hooks that run the specified command with the HookContext as JSON stdin.
+// scmCode: an entry whose name is already registered (e.g. the built-in security_gate)
+// is skipped, so a config file can't replace or switch off a built-in hook.
 func (r *HookRegistry) LoadFromConfig(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -208,7 +210,20 @@ func (r *HookRegistry) LoadFromConfig(path string) error {
 		return fmt.Errorf("parsing hooks config %s: %w", path, err)
 	}
 
+	registered := make(map[string]bool)
+	r.mu.RLock()
+	for _, hooks := range r.handlers {
+		for _, h := range hooks {
+			registered[h.Name] = true
+		}
+	}
+	r.mu.RUnlock()
+
 	for _, entry := range cfg.Hooks {
+		if registered[entry.Name] {
+			log.Printf("hooks: %s: skipping %q, the name of an already registered hook", path, entry.Name)
+			continue
+		}
 		for _, evStr := range entry.Events {
 			event := HookEvent(evStr)
 			if entry.Builtin != "" {

@@ -276,7 +276,10 @@ export class BrowserWorkbenchEnvironmentService implements IBrowserWorkbenchEnvi
 	@memoize
 	get webviewExternalEndpoint(): string {
 		if ((globalThis as any).__SIDEX_TAURI__) {
-			return `${window.location.origin}/webview-pre/`;
+			// scmCode: one loopback origin per webview, set by src/main.ts from
+			// src-tauri/src/webview_host.rs, never the workbench origin. If it is
+			// missing, webviews fail instead of falling back to a remote CDN.
+			return this.options.webviewEndpoint ?? '';
 		}
 
 		const endpoint =

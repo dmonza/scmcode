@@ -791,11 +791,11 @@ func (h *Handler) runAgentLoopWithAgents(sc *safeConn, sess *session.Session, ct
 	hooks.Register(agent.HookBeforeTurn, "exploration_nudge", agent.ExplorationNudgeHook, 90)
 	hooks.Register(agent.HookBeforeTurn, "verify_after_edit", agent.VerifyAfterEditHook, 80)
 	hooks.Register(agent.HookBeforeToolUse, "security_gate", agent.SecurityGateHook, 100)
-	// Load user-defined hooks from <workspace>/.scmcode/hooks.json (no-op if absent).
-	if sess.CWD != "" {
-		if err := hooks.LoadFromConfig(filepath.Join(sess.CWD, ".scmcode", "hooks.json")); err != nil {
-			log.Printf("hooks: failed to load workspace config: %v", err)
-		}
+	// scmCode: user-defined hooks come only from the user's own
+	// ~/.scmcode/agent-hooks.json (no-op if absent), never from the workspace:
+	// a repository must not be able to run commands just by being opened.
+	if err := hooks.LoadFromConfig(paths.GlobalAgentHooks()); err != nil {
+		log.Printf("hooks: failed to load %s: %v", paths.GlobalAgentHooks(), err)
 	}
 	cfg.Hooks = hooks
 

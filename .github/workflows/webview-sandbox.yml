@@ -1,0 +1,124 @@
+# scmCode: runtime check of the webview sandbox (src-tauri/src/webview_host.rs) on the
+# real system webview of each OS: WebView2 (Windows), WKWebView (macOS), WebKitGTK
+# (Linux). Builds the app with the `selftest` feature and runs it with SCMCODE_SELFTEST=1:
+# the workbench opens a real webview and checks from inside that it runs on its own
+# origin, can't reach the workbench or Tauri's app commands, can't read local files
+# through sidex-asset, and still loads local resources. See src-tauri/src/selftest.rs.
+name: Webview sandbox
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/webview-sandbox.yml"
+      - "src-tauri/**"
+      - "src/**"
+      - "public/webview-pre/**"
+      - "package.json"
+      - "package-lock.json"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/webview-sandbox.yml"
+      - "src-tauri/**"
+      - "src/**"
+      - "public/webview-pre/**"
+      - "package.json"
+      - "package-lock.json"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  # Nightly on main: catches breakage that arrives without touching the paths
+  # above (an upstream merge, a new system webview on the runner images).
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webview-sandbox-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  selftest:
+    name: webview sandbox (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+          - os: macos-latest
+          - os: windows-latest
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      CARGO_PROFILE_DEV_DEBUG: 0
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            xvfb
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+          key: webview-sandbox-${{ matrix.os }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      # macOS runs the .app bundle so its Info.plist (App Transport Security)
+      # applies, as in a shipped build; elsewhere the bare binary is the app.
+      - name: Build the self-test app
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            npx tauri build --debug --bundles app --features selftest
+          else
+            npx tauri build --debug --no-bundle --features selftest
+          fi
+
+      - name: Run the webview sandbox self-test
+        timeout-minutes: 10
+        env:
+          SCMCODE_SELFTEST: "1"
+          SCMCODE_SELFTEST_OUT: ${{ runner.temp }}/webview-sandbox-report.json
+        run: |
+          case "$RUNNER_OS" in
+            Linux)   xvfb-run -a ./target/debug/scmCode ;;
+            macOS)   ./target/debug/bundle/macos/scmCode.app/Contents/MacOS/scmCode ;;
+            Windows) ./target/debug/scmCode.exe ;;
+          esac
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webview-sandbox-report-${{ matrix.os }}
+          path: ${{ runner.temp }}/webview-sandbox-report.json
+          if-no-files-found: warn

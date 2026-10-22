@@ -62,25 +62,14 @@ func CheckPermission(toolName string, mode PermissionMode) PermissionDecision {
 		return PermAllow
 	}
 
-	if mode == PermissionAutoEdits {
-		if isFileEdit(toolName) {
-			return PermAllow
-		}
-		if isShellTool(toolName) {
-			return PermAsk
-		}
-		if IsDangerousTool(toolName) {
-			return PermAsk
-		}
+	if mode == PermissionAutoEdits && isFileEdit(toolName) {
 		return PermAllow
 	}
 
-	// PermissionDefault: ask for anything dangerous
-	if IsDangerousTool(toolName) {
-		return PermAsk
-	}
-
-	return PermAllow
+	// scmCode: anything not classified above asks, in both default and
+	// auto_edits. That covers dangerous and shell tools, and also tools added
+	// later or provided by an MCP server, which used to run without a prompt.
+	return PermAsk
 }
 
 // ParsePermissionMode converts a string from the client into a PermissionMode.
@@ -166,6 +155,11 @@ var dangerousTools = map[string]bool{
 	// user's permission mode, never auto-approve.
 	"spawn_agents":          true,
 	"parallel_plan_execute": true,
+	// scmCode: mcp_connect starts any process; MCP calls and rollback act
+	// outside the agent's own file tools.
+	"mcp_connect":   true,
+	"mcp_call_tool": true,
+	"rollback":      true,
 }
 
 // Safe meta-tools that should never require approval.
@@ -190,6 +184,17 @@ var safeMetaTools = map[string]bool{
 	"task_output":     true,
 	"send_message":    true,
 	"agent_status":    true,
+	// scmCode: tools that only read or track state, listed so the ask-by-default
+	// rule in CheckPermission keeps them prompt-free.
+	"plan_create":       true,
+	"plan_update":       true,
+	"plan_complete":     true,
+	"structured_output": true,
+	"context_index":     true,
+	"checkpoint":        true,
+	"mcp_list_tools":    true,
+	"mcp_disconnect":    true,
+	"image_read":        true,
 }
 
 func IsReadOnlyTool(name string) bool  { return ReadOnlyTools[name] }

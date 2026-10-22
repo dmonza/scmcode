@@ -37,6 +37,14 @@ func GlobalConfig() string {
 	return filepath.Join(SidexHome(), "config.json")
 }
 
+// GlobalAgentHooks returns the path to the user's agent command hooks
+// (~/.scmcode/agent-hooks.json). scmCode: hooks are never read from the
+// workspace, so opening a repository can't make the agent run its commands.
+// The name differs from hooks.json, which the app uses for its own hooks.
+func GlobalAgentHooks() string {
+	return filepath.Join(SidexHome(), "agent-hooks.json")
+}
+
 // GlobalMCP returns the path to the global MCP server definitions (~/.scmcode/mcp.json).
 func GlobalMCP() string {
 	return filepath.Join(SidexHome(), "mcp.json")

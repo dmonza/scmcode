@@ -9,6 +9,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { URI } from '../../../base/common/uri.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { Disposable, IDisposable, toDisposable } from '../../../base/common/lifecycle.js';
+import { isLinux } from '../../../base/common/platform.js';
 import {
 	FileChangeType,
 	FileSystemProviderCapabilities,
@@ -57,8 +58,12 @@ interface TauriWatchBatch {
 }
 
 export class TauriFileSystemProvider extends Disposable implements IFileSystemProviderWithFileReadWriteCapability {
+	// scmCode: paths are case-sensitive only on Linux, as in VS Code's disk provider
+	// (src/vs/platform/files/node/diskFileSystemProvider.ts, `capabilities`). On Windows
+	// and macOS `C:\x` and `c:\x` are the same file; treating them as different made
+	// webviews refuse local resources whose drive letter came back in another case.
 	readonly capabilities: FileSystemProviderCapabilities =
-		FileSystemProviderCapabilities.FileReadWrite | FileSystemProviderCapabilities.PathCaseSensitive;
+		FileSystemProviderCapabilities.FileReadWrite | (isLinux ? FileSystemProviderCapabilities.PathCaseSensitive : 0);
 
 	readonly onDidChangeCapabilities = Event.None;
 

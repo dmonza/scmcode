@@ -30,6 +30,7 @@ fn normalize_for_node(path: PathBuf) -> PathBuf {
 struct ExtHostSession {
     child: Child,
     port: u16,
+    token: String,
     session_id: String,
     started_at: Instant,
     #[allow(dead_code)]
@@ -37,6 +38,14 @@ struct ExtHostSession {
     #[allow(dead_code)]
     manifests: Vec<ExtensionManifest>,
     restart_count: u32,
+}
+
+impl ExtHostSession {
+    /// WebSocket URL the workbench connects to. scmCode: the host refuses
+    /// connections without this session's token.
+    fn endpoint(&self) -> String {
+        format!("ws://127.0.0.1:{}/?token={}", self.port, self.token)
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -76,27 +85,29 @@ impl ExtensionPlatformSupervisor {
         app: &AppHandle,
         _init_data_json: &str,
         _extension_search_paths: &[String],
-    ) -> Result<u16, String> {
+    ) -> Result<String, String> {
         let mut guard = self.inner.lock().map_err(|e| e.to_string())?;
         if let Some(ref mut session) = guard.session {
             if session.child.try_wait().ok().flatten().is_none() {
-                return Ok(session.port);
+                return Ok(session.endpoint());
             }
             guard.total_crashes += 1;
             guard.session = None;
         }
         let started = spawn_host_process(app, &[])?;
-        let port = started.port;
-        guard.session = Some(ExtHostSession {
+        let session = ExtHostSession {
             child: started.child,
             port: started.port,
+            token: started.token,
             session_id: started.session_id,
             started_at: Instant::now(),
             init_data: started.init_data,
             manifests: started.manifests,
             restart_count: 1,
-        });
-        Ok(port)
+        };
+        let endpoint = session.endpoint();
+        guard.session = Some(session);
+        Ok(endpoint)
     }
 
     pub fn stop(&self) -> Result<(), String> {
@@ -114,7 +125,7 @@ impl ExtensionPlatformSupervisor {
         app: &AppHandle,
         init_data_json: &str,
         extension_search_paths: &[String],
-    ) -> Result<u16, String> {
+    ) -> Result<String, String> {
         self.stop()?;
         self.ensure_started(app, init_data_json, extension_search_paths)
     }
@@ -208,6 +219,7 @@ struct PortMessage {
 
 struct StartedSession {
     port: u16,
+    token: String,
     session_id: String,
     init_data: ExtensionHostInitData,
     manifests: Vec<ExtensionManifest>,
@@ -238,6 +250,13 @@ fn spawn_host_process(
     let descriptions = build_extension_descriptions(&manifests);
     let init_data = build_init_data(&descriptions, workspace_folders);
     let session_id = uuid::Uuid::new_v4().to_string();
+    // scmCode: secret the host requires on every connection, so a web page or
+    // another local program can't drive it (two v4 UUIDs: 244 random bits).
+    let token = format!(
+        "{}{}",
+        uuid::Uuid::new_v4().simple(),
+        uuid::Uuid::new_v4().simple()
+    );
 
     log::info!("extensions directory: {}", user_ext_dir.display());
     log::info!(
@@ -276,6 +295,7 @@ fn spawn_host_process(
         .env("SIDEX_EXTENSION_SEARCH_PATHS", &search_paths_json)
         .env("SIDEX_INIT_DATA_FILE", &init_data_file)
         .env("SIDEX_SESSION_ID", &session_id)
+        .env("SCMCODE_EXT_HOST_TOKEN", &token)
         .env("NODE_ENV", "production")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -348,6 +368,7 @@ fn spawn_host_process(
 
     Ok(StartedSession {
         port,
+        token,
         session_id,
         init_data,
         manifests,
@@ -386,6 +407,7 @@ fn ensure_session(guard: &mut SupervisorState, app: &AppHandle) -> Result<(), St
     guard.session = Some(ExtHostSession {
         child: started.child,
         port: started.port,
+        token: started.token,
         session_id: started.session_id,
         started_at: Instant::now(),
         init_data: started.init_data,

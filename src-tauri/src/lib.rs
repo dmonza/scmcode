@@ -1,6 +1,11 @@
 mod app_dirs;
+mod app_origin;
 mod commands;
+mod navigation;
+#[cfg(feature = "selftest")]
+mod selftest;
 mod server;
+mod webview_host;
 
 use commands::auth::AuthState;
 use commands::db_state::SidexDbState;
@@ -454,6 +459,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
+        // scmCode: the main window never leaves the app origin (navigation.rs).
+        .plugin(navigation::init())
         .manage(AuthState::new())
         .manage(UpdateManagerState::new())
         .manage(Arc::new(commands::extensions::MarketplaceClientState::new()))
@@ -477,8 +484,16 @@ pub fn run() {
         .manage(Arc::new(
             WasmExtensionRuntime::new().expect("failed to initialize WASM runtime"),
         ))
-        .register_asynchronous_uri_scheme_protocol("sidex-asset", |_ctx, request, responder| {
+        .register_asynchronous_uri_scheme_protocol("sidex-asset", |ctx, request, responder| {
+            // scmCode: only the app may read these responses (no
+            // `Access-Control-Allow-Origin: *`): webviews and other origins
+            // can't fetch local files through this protocol.
+            let dev_url = app_origin::dev_url(ctx.app_handle());
+            let request_headers = request.headers().clone();
             std::thread::spawn(move || {
+                let cors = |builder: tauri::http::response::Builder| {
+                    app_origin::app_only_cors(builder, &request_headers, dev_url.as_ref())
+                };
                 let raw_path = request.uri().path();
                 let decoded = urlencoding::decode(raw_path.strip_prefix('/').unwrap_or(raw_path))
                     .unwrap_or_default();
@@ -491,9 +506,7 @@ pub fn run() {
                     Ok(p) => p,
                     Err(_) => {
                         responder.respond(
-                            tauri::http::Response::builder()
-                                .status(404)
-                                .header("Access-Control-Allow-Origin", "*")
+                            cors(tauri::http::Response::builder().status(404))
                                 .body(Vec::new())
                                 .unwrap(),
                         );
@@ -502,7 +515,8 @@ pub fn run() {
                 };
 
                 // Only allow files within the user's workspace or common asset paths
-                let canonical_str = canonical.to_string_lossy();
+                // scmCode: compare with `/` on Windows too (canonical paths use `\`).
+                let canonical_str = canonical.to_string_lossy().replace('\\', "/");
                 let is_safe = !canonical_str.contains("/.ssh/")
                     && !canonical_str.contains("/.gnupg/")
                     && !canonical_str.contains("/etc/")
@@ -511,9 +525,7 @@ pub fn run() {
 
                 if !is_safe {
                     responder.respond(
-                        tauri::http::Response::builder()
-                            .status(403)
-                            .header("Access-Control-Allow-Origin", "*")
+                        cors(tauri::http::Response::builder().status(403))
                             .body(Vec::new())
                             .unwrap(),
                     );
@@ -522,9 +534,7 @@ pub fn run() {
 
                 let Ok(data) = std::fs::read(&canonical) else {
                     responder.respond(
-                        tauri::http::Response::builder()
-                            .status(404)
-                            .header("Access-Control-Allow-Origin", "*")
+                        cors(tauri::http::Response::builder().status(404))
                             .body(Vec::new())
                             .unwrap(),
                     );
@@ -552,10 +562,8 @@ pub fn run() {
                 };
 
                 responder.respond(
-                    tauri::http::Response::builder()
-                        .status(200)
+                    cors(tauri::http::Response::builder().status(200))
                         .header("Content-Type", mime)
-                        .header("Access-Control-Allow-Origin", "*")
                         .body(data)
                         .unwrap(),
                 );
@@ -564,6 +572,16 @@ pub fn run() {
         .setup(|app| {
             let app_data = crate::app_dirs::resolve_and_migrate();
             std::fs::create_dir_all(&app_data).ok();
+            // scmCode: webviews run on their own loopback origin (webview_host.rs).
+            // Without it they fail to load instead of sharing the workbench origin.
+            match webview_host::start(app.handle()) {
+                Ok(host) => {
+                    app.manage(host);
+                }
+                Err(e) => log::error!("{e}; webviews are disabled"),
+            }
+            #[cfg(feature = "selftest")]
+            selftest::start(app.handle());
             let db_path = app_data.join("sidex_storage.db");
             // Non-UTF-8 app-data paths and a corrupt/locked DB must not hard-
             // crash the app with no message — recreate the DB once, then fail
@@ -689,6 +707,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             // AI Agent
             commands::agent::agent_execute_tool,
+            // scmCode: sandbox origin for webviews
+            webview_host::webview_host_endpoint,
             // Local account, providers, and the local agent server
             server::server_endpoint,
             server::server_restart,

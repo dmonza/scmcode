@@ -8,7 +8,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 
 use crate::encoding::decode_manifest_text;
-use crate::manifest::{parse_manifest, ExtensionManifest};
+use crate::manifest::{parse_manifest, sanitize_ext_id, ExtensionManifest};
 use crate::marketplace::MarketplaceClient;
 
 /// Installs an extension from a local `.vsix` file.
@@ -30,7 +30,8 @@ pub fn install_from_vsix(vsix_path: &Path, target_dir: &Path) -> Result<Extensio
 
     let manifest: ExtensionManifest =
         serde_json::from_str(&manifest_json).context("invalid package.json in .vsix")?;
-    let ext_dir = target_dir.join(manifest.canonical_id());
+    // scmCode: validate the package-supplied id before using it as a path.
+    let ext_dir = target_dir.join(sanitize_ext_id(&manifest.canonical_id())?);
     std::fs::create_dir_all(&ext_dir)?;
 
     for i in 0..archive.len() {

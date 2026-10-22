@@ -264,6 +264,31 @@ class ExtensionHostManager {
 
 // ── WebSocket Connection Handler ────────────────────────────────────────
 
+// scmCode: per-session secret from the app (ext_host.rs). Every HTTP request
+// and WebSocket upgrade must carry it as `?token=` and address the loopback
+// host, so a web page (cross-site WebSocket, DNS rebinding) or another local
+// program can't load and run code through this host.
+const AUTH_TOKEN = process.env.SCMCODE_EXT_HOST_TOKEN || '';
+
+function isAuthorized(req, port) {
+  if (!AUTH_TOKEN) {
+    return false;
+  }
+  const host = (req.headers.host || '').toLowerCase();
+  if (host !== `127.0.0.1:${port}` && host !== `localhost:${port}`) {
+    return false;
+  }
+  let token;
+  try {
+    token = new URL(req.url || '/', 'http://127.0.0.1').searchParams.get('token') || '';
+  } catch {
+    return false;
+  }
+  const given = Buffer.from(token);
+  const expected = Buffer.from(AUTH_TOKEN);
+  return given.length === expected.length && crypto.timingSafeEqual(given, expected);
+}
+
 const hostManager = new ExtensionHostManager();
 
 function handleUpgrade(req, socket) {
@@ -653,9 +678,19 @@ function log(msg) {
 }
 
 async function main() {
+  if (!AUTH_TOKEN) {
+    log('SCMCODE_EXT_HOST_TOKEN is not set; refusing to start');
+    process.exit(1);
+  }
+
   const port = await findFreePort();
 
-  const server = http.createServer((_req, res) => {
+  const server = http.createServer((req, res) => {
+    if (!isAuthorized(req, port)) {
+      res.writeHead(403);
+      res.end();
+      return;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
       JSON.stringify({
@@ -669,6 +704,11 @@ async function main() {
   });
 
   server.on('upgrade', (req, socket, _head) => {
+    if (!isAuthorized(req, port)) {
+      log('rejected unauthorized connection');
+      socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
+      return;
+    }
     handleUpgrade(req, socket);
   });
 

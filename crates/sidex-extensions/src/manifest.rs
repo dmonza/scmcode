@@ -485,16 +485,25 @@ pub fn path_to_uri_path(path: &str) -> String {
     }
 }
 
-/// Sanitize an extension id for use as a directory name.
+/// Validates an extension id for use as a directory name inside the extensions
+/// directory.
+///
+/// scmCode: the id comes from the extension's own `package.json`, so it is
+/// rejected (not cleaned up) unless it is a single plain path component: only
+/// letters, digits, `.`, `-` and `_`, not starting with `.` and without `..`.
+/// That keeps `"../.."`, `"."` or an absolute path from turning an install into
+/// a delete or a write outside the extensions directory.
 pub fn sanitize_ext_id(id: &str) -> Result<String> {
-    let clean: String = id
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == '.' || *c == '-' || *c == '_')
-        .collect();
-    if clean.is_empty() || clean.contains("..") {
-        anyhow::bail!("invalid extension id: {id}");
+    let valid = !id.is_empty()
+        && !id.starts_with('.')
+        && !id.contains("..")
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_');
+    if !valid {
+        anyhow::bail!("invalid extension id: {id:?}");
     }
-    Ok(clean)
+    Ok(id.to_string())
 }
 
 fn version_weight(version: &str) -> Vec<u32> {
@@ -695,6 +704,15 @@ mod tests {
         );
         assert!(sanitize_ext_id("..").is_err());
         assert!(sanitize_ext_id("").is_err());
+        assert!(sanitize_ext_id(".").is_err());
+        assert!(sanitize_ext_id(".hidden").is_err());
+        assert!(sanitize_ext_id("../../..").is_err());
+        assert!(sanitize_ext_id("a/../b").is_err());
+        assert!(sanitize_ext_id("pub.name/sub").is_err());
+        assert!(sanitize_ext_id("pub.name\\sub").is_err());
+        assert!(sanitize_ext_id("/etc").is_err());
+        assert!(sanitize_ext_id("C:").is_err());
+        assert!(sanitize_ext_id("pub.ñame").is_err());
     }
 
     #[test]

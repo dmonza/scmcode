@@ -4,6 +4,7 @@
   "description": "scmCode IDE permissions",
   "windows": ["main"],
   "permissions": [
+    "allow-app-commands",
     "core:default",
     "core:webview:allow-internal-toggle-devtools",
     "core:window:allow-start-dragging",

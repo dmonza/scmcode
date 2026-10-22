@@ -140,7 +140,8 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 	static readonly ID = 'workbench.contrib.tauriExtensionHost';
 
 	private _ws: WebSocket | undefined;
-	private _port: number | undefined;
+	// scmCode: full endpoint (it carries the host's auth token), reused on reconnect.
+	private _endpoint: string | undefined;
 	private _msgId = 0;
 	private _reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 	private _reconnectAttempts = 0;
@@ -540,8 +541,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 
 	private _connect(endpoint: string): void {
 		try {
-			const url = new URL(endpoint);
-			this._port = Number(url.port) || undefined;
+			this._endpoint = endpoint;
 			const ws = new WebSocket(endpoint);
 			this._ws = ws;
 
@@ -590,15 +590,15 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 	}
 
 	private _scheduleReconnect(): void {
-		if (this._reconnectTimer || !this._port || this._reconnectAttempts >= 3) {
+		if (this._reconnectTimer || !this._endpoint || this._reconnectAttempts >= 3) {
 			return;
 		}
 		this._reconnectAttempts++;
 		const delay = Math.min(1000 * Math.pow(2, this._reconnectAttempts - 1), 30000);
 		this._reconnectTimer = setTimeout(() => {
 			this._reconnectTimer = undefined;
-			if (this._port && (!this._ws || this._ws.readyState === WebSocket.CLOSED)) {
-				this._connect(`ws://127.0.0.1:${this._port}`);
+			if (this._endpoint && (!this._ws || this._ws.readyState === WebSocket.CLOSED)) {
+				this._connect(this._endpoint);
 			}
 		}, delay);
 	}

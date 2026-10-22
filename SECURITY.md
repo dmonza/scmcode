@@ -35,6 +35,8 @@ workflows. Examples of what we especially want to hear about:
 - a web page, a workspace, an extension or a remote host making the agent server run
   commands, edit or read files, or read sessions, transcripts or memory;
 - a way around a permission prompt or another documented safeguard of the agent;
+- content in a webview (an extension panel, a Markdown preview, an extension's README)
+  reaching the editor window, the app's commands or local files;
 - a network connection made by scmCode's own code that is not listed in
   [PRIVACY.md](./PRIVACY.md);
 - a way to make the updater install an update without a valid signature.

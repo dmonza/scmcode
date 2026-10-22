@@ -72,7 +72,13 @@ install.**
 - **Extensions run with your permissions.** Extensions you install from Open VSX (or
   anywhere else) run their own code. They can read your files, run processes and make
   network requests, including telemetry. scmCode does not audit, sandbox or vouch for them.
-  Install only extensions you trust, and review what they do.
+  Install only extensions you trust, and review what they do. (The extension host they run
+  in listens on `127.0.0.1` and accepts only the editor, which holds a per-session token.)
+- **Webviews are sandboxed, extensions are not.** What a webview shows (an extension panel,
+  a Markdown preview, an extension's README) runs on its own loopback origin,
+  `http://<id>.localhost:<port>`, served by the app with nothing but VS Code's webview host
+  files. From there it can't reach the editor window, the app's commands or your files
+  through the app. The extension behind a panel still runs with your permissions.
 - **The AI agent acts on your behalf.** It can run shell commands and edit files. Review
   what it does, and choose model providers you trust with your code. A local model keeps
   everything on your machine.
@@ -205,6 +211,8 @@ with your provider's terms of service.
 The agent server executes shell commands and edits files on your behalf. Binding it to `127.0.0.1` only is a deliberate security boundary: nothing else on your network can reach it.
 
 `SIDEX_BIND_ADDR` can widen that, but the server refuses to start on a non-loopback address unless you explicitly opt in with `SIDEX_ALLOW_UNAUTHENTICATED=1`. Don't set that unless you understand the exposure — an open port on this server means arbitrary code execution for whoever can reach it.
+
+In the default and auto-edit modes the agent asks before it runs a command, starts or calls an MCP server, or uses any tool it doesn't classify as read-only or safe, including tools an MCP server provides; the default mode also asks before file edits. Agent command hooks (commands the agent runs at fixed points of a turn) are read only from `~/.scmcode/agent-hooks.json` in your home folder, never from the workspace, and can't replace the built-in safety hook.
 
 Web pages you open in a browser can also send requests to `127.0.0.1`. The server rejects requests from any origin other than the scmCode webview, requests whose `Host` is not a loopback address (DNS rebinding), and request bodies that are not JSON, so a page cannot drive it or read your sessions. The server has no authentication of its own, though: other programs and other user accounts on the same machine can connect to it. Don't run scmCode's agent on a machine you share with people you don't trust.
 

@@ -105,6 +105,21 @@ export class SidexChatViewPane extends ViewPane {
 			e.stopPropagation();
 		}, { passive: false });
 
+		// scmCode: links in messages (model output included) never navigate the
+		// workbench window: web and mail links open in the system browser, any
+		// other link is ignored. The Rust navigation guard backs this up.
+		this._messagesEl.addEventListener('click', (e) => {
+			const link = (e.target as HTMLElement | null)?.closest?.('a[href]');
+			if (!link) {
+				return;
+			}
+			e.preventDefault();
+			const href = link.getAttribute('href') ?? '';
+			if (/^(https?:|mailto:)/i.test(href)) {
+				this.openerService.open(URI.parse(href), { openExternal: true }).catch(() => { /* ignore */ });
+			}
+		});
+
 		this._welcomeEl = DOM.append(this._messagesEl, $('div.sc-welcome'));
 
 		const logoSvg = `<svg class="sc-welcome-logo" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">

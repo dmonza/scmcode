@@ -22,7 +22,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::encoding::decode_manifest_text;
-use crate::manifest::{parse_manifest_str, ExtensionManifest};
+use crate::manifest::{parse_manifest_str, sanitize_ext_id, ExtensionManifest};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -216,7 +216,9 @@ pub fn validate_vsix_file(vsix_path: &Path) -> Result<ValidationResult> {
 
 /// Installs a VSIX package (already unpacked) to an extensions directory.
 pub fn install_package(pkg: &VsixPackage, extensions_dir: &Path) -> Result<InstalledExtension> {
-    let ext_id = pkg.manifest.canonical_id();
+    // scmCode: validate the package-supplied id before it becomes a path that
+    // is deleted and written below.
+    let ext_id = sanitize_ext_id(&pkg.manifest.canonical_id())?;
     let ext_dir = extensions_dir.join(&ext_id);
 
     if ext_dir.exists() {
@@ -354,6 +356,55 @@ mod tests {
         let r = validate_vsix(&pkg);
         assert!(r.valid);
         assert!(r.errors.is_empty());
+    }
+
+    fn package_with_id(id: &str) -> VsixPackage {
+        VsixPackage {
+            manifest: ExtensionManifest {
+                id: id.into(),
+                ..default_test_manifest()
+            },
+            readme: None,
+            changelog: None,
+            license_text: None,
+            icon: None,
+            contents: HashMap::from([("package.json".into(), b"{}".to_vec())]),
+            modes: HashMap::new(),
+            vsix_manifest_xml: None,
+        }
+    }
+
+    #[test]
+    fn install_rejects_ids_that_leave_the_extensions_dir() {
+        let root = tempfile::tempdir().unwrap();
+        let extensions_dir = root.path().join("home").join("extensions");
+        std::fs::create_dir_all(&extensions_dir).unwrap();
+        let sentinel = root.path().join("home").join("keep.txt");
+        std::fs::write(&sentinel, "user data").unwrap();
+        let outside = root.path().join("outside");
+
+        for id in ["..", "../..", ".", outside.to_str().unwrap(), "pub/../../x"] {
+            assert!(
+                install_package(&package_with_id(id), &extensions_dir).is_err(),
+                "id {id:?} was accepted"
+            );
+        }
+        assert!(
+            sentinel.exists(),
+            "a file outside the extensions dir was removed"
+        );
+        assert!(
+            !outside.exists(),
+            "a directory outside the extensions dir was created"
+        );
+    }
+
+    #[test]
+    fn install_accepts_a_normal_id() {
+        let root = tempfile::tempdir().unwrap();
+        let installed = install_package(&package_with_id("test.ext"), root.path()).unwrap();
+        assert_eq!(installed.install_dir, root.path().join("test.ext"));
+        assert!(root.path().join("test.ext").join("package.json").exists());
     }
 
     fn default_test_manifest() -> ExtensionManifest {

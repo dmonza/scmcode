@@ -763,7 +763,7 @@ pub async fn extension_platform_bootstrap(
         .map(|p| p.to_string_lossy().to_string())
         .collect();
 
-    let port = supervisor.ensure_started(&app, &init_data_json, &search_paths)?;
+    let endpoint = supervisor.ensure_started(&app, &init_data_json, &search_paths)?;
 
     let node = resolve_node_runtime(&app)?;
 
@@ -809,7 +809,7 @@ pub async fn extension_platform_bootstrap(
         .collect();
 
     Ok(serde_json::json!({
-        "transport": { "kind": "websocket", "endpoint": format!("ws://127.0.0.1:{port}/") },
+        "transport": { "kind": "websocket", "endpoint": endpoint },
         "runtime": { "path": node.path, "version": node.version, "source": "system", "bundled": false },
         "paths": {
             "serverScript": dunce::simplified(&resolve_server_script(&app)).to_string_lossy(),
