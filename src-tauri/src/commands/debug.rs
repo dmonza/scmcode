@@ -100,6 +100,7 @@ pub fn debug_spawn_adapter(
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("Failed to spawn debug adapter '{executable}': {e}"))?;
+    crate::scmcode_children::tie(&child, "debug adapter");
 
     let stdin = child
         .stdin

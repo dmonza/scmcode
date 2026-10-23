@@ -4,6 +4,7 @@ mod commands;
 mod navigation;
 mod scmcode_asset;
 mod scmcode_blocking;
+mod scmcode_children;
 #[cfg(feature = "selftest")]
 mod selftest;
 mod server;
@@ -458,6 +459,20 @@ pub fn run() {
     }
 
     tauri::Builder::default()
+        // scmCode: one app instance, as VS Code (`claimInstance`); registered first, as
+        // the plugin requires. A second launch would start a second agent server and
+        // extension host on the same profile, and its startup cleanup would kill the
+        // first instance's server (docs/audit TR-10). The second launch exits and the
+        // first window comes to the front. scmCode takes no command-line paths yet, so
+        // the arguments are only logged.
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            log::info!("second launch ({argv:?}): focusing the running window");
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         // scmCode: the main window never leaves the app origin (navigation.rs).
@@ -1031,6 +1046,15 @@ pub fn run() {
                 // database locked against the next launch.
                 if let Some(server) = app_handle.try_state::<Arc<server::LocalServer>>() {
                     server.shutdown();
+                }
+                // scmCode: terminals and MCP servers too (docs/audit TR-10). On Windows the
+                // app's Job Object (scmcode_children.rs) also ends anything left, even
+                // when the app doesn't get to run this (crash, End Task).
+                if let Some(store) = app_handle.try_state::<Arc<TerminalStore>>() {
+                    store.kill_all();
+                }
+                if let Some(mcp) = app_handle.try_state::<commands::mcp::McpState>() {
+                    tauri::async_runtime::block_on(mcp.shutdown_all());
                 }
             }
         });

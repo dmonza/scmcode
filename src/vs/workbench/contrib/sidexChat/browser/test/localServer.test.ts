@@ -124,6 +124,21 @@ test('a confirmed running endpoint is cached and not re-requested', async () => 
 	assert.equal(calls.length, 1, 'a settled resolution must be served from cache');
 });
 
+// scmCode: TR-13. The supervisor restarts a crashed server on a new port.
+test('refresh asks again past the cache and picks up the new port', async () => {
+	const mod = await loadModule();
+	let current = endpoint({ running: true });
+	const { calls } = installInvoke(async () => current);
+	await mod.resolveServerEndpoint();
+
+	current = endpoint({ running: true, port: 61000, wsUrl: 'ws://127.0.0.1:61000', httpUrl: 'http://127.0.0.1:61000' });
+	assert.equal((await mod.resolveServerEndpoint()).port, 54321, 'without refresh the cache answers');
+	const refreshed = await mod.resolveServerEndpoint({ refresh: true });
+	assert.equal(refreshed.port, 61000);
+	assert.equal(mod.serverWsUrl(), 'ws://127.0.0.1:61000');
+	assert.equal(calls.length, 2);
+});
+
 test('a "not running" answer is real information but stays retryable', async () => {
 	const mod = await loadModule();
 	let callCount = 0;

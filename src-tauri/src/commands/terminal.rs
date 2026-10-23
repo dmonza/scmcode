@@ -26,6 +26,14 @@ impl TerminalStore {
             next_id: Mutex::new(1),
         }
     }
+
+    /// scmCode: kill every terminal's shell. Called on app exit (docs/audit TR-10).
+    pub fn kill_all(&self) {
+        let mut terminals = self.terminals.lock().unwrap_or_else(|e| e.into_inner());
+        for (_, mut handle) in terminals.drain() {
+            let _ = handle.child.kill();
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -247,6 +255,7 @@ pub fn terminal_spawn(
         .slave
         .spawn_command(cmd)
         .map_err(|e| format!("Failed to spawn shell '{shell_path}': {e}"))?;
+    crate::scmcode_children::tie_pty(child.as_ref(), "terminal");
 
     let writer = pair
         .master

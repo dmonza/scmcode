@@ -122,6 +122,7 @@ impl McpConnection {
                 config.name, config.command, e
             )
         })?;
+        crate::scmcode_children::tie_tokio(&child, "MCP server");
 
         let stdin = child
             .stdin
@@ -444,6 +445,16 @@ impl McpState {
             servers: Mutex::new(HashMap::new()),
             configs: Mutex::new(Vec::new()),
             config_path: Mutex::new(config_path),
+        }
+    }
+
+    /// scmCode: stop every connected MCP server. Called on app exit
+    /// (docs/audit TR-10).
+    pub async fn shutdown_all(&self) {
+        let entries: Vec<McpServerEntry> =
+            self.servers.lock().await.drain().map(|(_, e)| e).collect();
+        for entry in entries {
+            entry.conn.lock().await.shutdown().await;
         }
     }
 

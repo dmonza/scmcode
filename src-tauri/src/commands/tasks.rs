@@ -151,6 +151,7 @@ pub fn task_spawn(
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("Failed to spawn task '{command}': {e}"))?;
+    crate::scmcode_children::tie(&child, "task");
 
     let stdout = child.stdout.take();
     let stderr = child.stderr.take();

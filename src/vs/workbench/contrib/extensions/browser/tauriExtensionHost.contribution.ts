@@ -66,6 +66,7 @@ import {
 import { listen } from '@tauri-apps/api/event';
 import { ITerminalService, ITerminalGroupService } from '../../terminal/browser/terminal.js';
 import { INotificationService, Severity as _Severity } from '../../../../platform/notification/common/notification.js';
+import { localize } from '../../../../nls.js';
 import { IProgressService, ProgressLocation } from '../../../../platform/progress/common/progress.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { IDebugService } from '../../debug/common/debug.js';
@@ -143,6 +144,9 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 	private _msgId = 0;
 	private _reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 	private _reconnectAttempts = 0;
+	// scmCode (TR-13): recent extension host crashes, and whether a re-bootstrap runs.
+	private _hostCrashes: number[] = [];
+	private _rebootstrapping = false;
 	private _pendingCallbacks = new Map<number, {
 		resolve: (v: unknown) => void;
 		reject: (e: Error) => void;
@@ -588,7 +592,13 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 	}
 
 	private _scheduleReconnect(): void {
-		if (this._reconnectTimer || !this._endpoint || this._reconnectAttempts >= 3) {
+		if (this._reconnectTimer || !this._endpoint) {
+			return;
+		}
+		if (this._reconnectAttempts >= 3) {
+			// scmCode (TR-13): the host server itself is gone. Ask the app for a new one
+			// instead of staying disconnected until a reload.
+			void this._rebootstrap();
 			return;
 		}
 		this._reconnectAttempts++;
@@ -599,6 +609,65 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 				this._connect(this._endpoint);
 			}
 		}, delay);
+	}
+
+	/**
+	 * scmCode (TR-13): VS Code's `ExtensionHostCrashTracker` (abstractExtensionService.ts):
+	 * record a crash and restart automatically unless this is the third within 5 minutes.
+	 */
+	private _shouldRestartAfterCrash(): boolean {
+		const now = Date.now();
+		this._hostCrashes = this._hostCrashes.filter(t => now - t < 5 * 60 * 1000);
+		this._hostCrashes.push(now);
+		return this._hostCrashes.length < 3;
+	}
+
+	/** Show a crash the way VS Code does, then restart now or offer to. */
+	private _onExtensionHostCrashed(restart: () => void): void {
+		if (this._shouldRestartAfterCrash()) {
+			this.notificationService.info(localize('scmcodeExtHostAutoRestart', "Extension host terminated unexpectedly. Restarting..."));
+			restart();
+			return;
+		}
+		this.notificationService.prompt(
+			_Severity.Error,
+			localize('scmcodeExtHostCrash', "Extension host terminated unexpectedly 3 times within the last 5 minutes."),
+			[{
+				label: localize('scmcodeRestartExtHost', "Restart Extension Host"),
+				run: () => {
+					this._hostCrashes = [];
+					restart();
+				}
+			}]
+		);
+	}
+
+	/** The host process (host.cjs) died while its server kept the connection open. */
+	private _onExtensionHostExited(code: unknown, signal: unknown): void {
+		this.logService.warn(`[ExtHost] extension host exited unexpectedly (code=${String(code)} signal=${String(signal)})`);
+		this._rejectPending('extension host exited');
+		this._onExtensionHostCrashed(() => {
+			// A new connection makes the server spawn a new host.
+			this._reconnectAttempts = 0;
+			this._ws?.close();
+		});
+	}
+
+	/** The host server (server.cjs) is unreachable: get a fresh one from the app. */
+	private async _rebootstrap(): Promise<void> {
+		if (this._rebootstrapping) {
+			return;
+		}
+		this._rebootstrapping = true;
+		this._onExtensionHostCrashed(() => {
+			bootstrapExtensionPlatform()
+				.then(bootstrap => {
+					this._reconnectAttempts = 0;
+					this._connect(bootstrap.transport.endpoint);
+				})
+				.catch(error => this.logService.warn(`[ExtHost] restart failed: ${(error as Error)?.message ?? String(error)}`))
+				.finally(() => (this._rebootstrapping = false));
+		});
 	}
 
 	override dispose(): void {
@@ -724,6 +793,9 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 		switch (msg.type) {
 			case 'sidex:handshake':
 				this._onHandshake(msg as HandshakeMessage);
+				break;
+			case 'extensionHostExited': // scmCode (TR-13), sent by server.cjs
+				this._onExtensionHostExited(msg.code, msg.signal);
 				break;
 			case 'extensionActivated':
 				this._activatedCount++;

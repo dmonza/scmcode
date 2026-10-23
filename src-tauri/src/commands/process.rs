@@ -60,6 +60,7 @@ pub async fn exec(
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("Failed to spawn '{command}': {e}"))?;
+    crate::scmcode_children::tie_tokio(&child, "process");
 
     let stdout_handle = child.stdout.take();
     let stderr_handle = child.stderr.take();

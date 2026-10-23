@@ -312,6 +312,7 @@ fn spawn_host_process(
     let mut child = child_cmd
         .spawn()
         .map_err(|e| format!("failed to spawn extension host: {e}"))?;
+    crate::scmcode_children::tie(&child, "extension host");
 
     let stdout = child
         .stdout

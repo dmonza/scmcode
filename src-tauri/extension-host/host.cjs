@@ -5008,6 +5008,19 @@ try {
 
 
 if (process.env.SIDEX_EXTENSION_HOST === 'true' && process.send) {
+  // scmCode (TR-10, TR-13), as VS Code's extensionHostProcess.ts does:
+  // - An extension can't end the host: `process.exit` only logs (VS Code `patchProcess`).
+  // - The host ends when its parent (server.cjs) goes away. Its timers would otherwise
+  //   keep it running as an orphan once the IPC channel is gone.
+  const nativeExit = process.exit.bind(process);
+  process.exit = function (code) {
+    log(`an extension called process.exit(${code === undefined ? '' : code}); ignored`);
+  };
+  process.on('disconnect', () => {
+    log('parent process went away; exiting');
+    nativeExit(0);
+  });
+
   const host = hostInstance;
   host.initialize();
 

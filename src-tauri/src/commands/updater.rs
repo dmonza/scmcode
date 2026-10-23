@@ -256,6 +256,9 @@ pub async fn update_cleanup(state: tauri::State<'_, UpdateManagerState>) -> Resu
 #[allow(clippy::needless_pass_by_value)]
 pub fn update_quit_and_install(app: AppHandle) -> Result<(), String> {
     let install_root = std::env::current_exe().map_err(|e| e.to_string())?;
+    // scmCode: release the single-instance lock first, or the relaunched app would
+    // see this one still running, hand its launch over and exit (docs/audit TR-10).
+    tauri_plugin_single_instance::destroy(&app);
     sidex_update::install::relaunch(&install_root).map_err(|e| e.to_string())?;
     app.exit(0);
     Ok(())

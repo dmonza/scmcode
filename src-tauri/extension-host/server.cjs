@@ -214,6 +214,18 @@ class ExtensionHostManager {
       if (this._sharedEntry === entry) {
         this._sharedEntry = null;
       }
+      // scmCode (TR-13): tell the connected workbenches the host died on its own, so
+      // they can show it and start a new one (their next connection spawns it), as
+      // VS Code does on an extension host crash. A host stopped by `shutdown` is not
+      // reported.
+      if (!entry.stopping) {
+        const msg = { type: 'sidex:host-event', event: { type: 'extensionHostExited', code, signal } };
+        for (const listener of this._listeners) {
+          try {
+            listener(msg);
+          } catch {}
+        }
+      }
     });
 
     child.on('error', (err) => {
@@ -262,6 +274,7 @@ class ExtensionHostManager {
 
   shutdown() {
     if (this._sharedEntry) {
+      this._sharedEntry.stopping = true;
       try {
         this._sharedEntry.child.kill();
       } catch {}

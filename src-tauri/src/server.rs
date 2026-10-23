@@ -325,23 +325,66 @@ fn looks_like_a_problem(line: &str) -> bool {
         .any(|kw| lower.contains(kw))
 }
 
+/// scmCode: the PID and binary of the server this app last started.
+fn pidfile_path() -> PathBuf {
+    crate::app_dirs::app_data_dir().join("sidex-server.pid")
+}
+
+fn write_pidfile(bin: &Path, pid: u32) {
+    if let Err(e) = std::fs::write(pidfile_path(), format!("{pid}\n{}\n", bin.display())) {
+        log::debug!("[sidex-server] could not write pidfile: {e}");
+    }
+}
+
 /// A previous `tauri dev` / crash can leave `sidex-server` running with
 /// `~/.scmcode/state.db` locked. The next spawn then sits on that lock until
 /// the health timeout, never binds, and the UI talks to an empty port.
+///
+/// scmCode: finds that server through the pidfile instead of `pgrep -f`, which
+/// doesn't exist on Windows and matched any process whose command line held the
+/// path (docs/audit TR-10). On Windows the app's Job Object
+/// (`scmcode_children.rs`) already ended the server with the app that started
+/// it, so there is nothing to do there.
 fn kill_orphan_servers(bin: &Path) {
-    let bin_s = bin.to_string_lossy();
-    let Ok(out) = Command::new("pgrep").arg("-f").arg(bin_s.as_ref()).output() else {
+    let path = pidfile_path();
+    let Ok(text) = std::fs::read_to_string(&path) else {
         return;
     };
-    if !out.status.success() {
+    let _ = std::fs::remove_file(&path);
+    let mut lines = text.lines();
+    let (Some(pid), Some(recorded)) = (
+        lines.next().and_then(|l| l.trim().parse::<u32>().ok()),
+        lines.next(),
+    ) else {
+        return;
+    };
+    if Path::new(recorded) == bin && pid != std::process::id() {
+        stop_leftover(pid, recorded);
+    }
+}
+
+#[cfg(unix)]
+fn stop_leftover(pid: u32, recorded: &str) {
+    // PIDs are reused: signal it only if that PID still runs this binary.
+    let Ok(out) = Command::new("ps")
+        .args(["-p", &pid.to_string(), "-o", "command="])
+        .output()
+    else {
+        return;
+    };
+    if !String::from_utf8_lossy(&out.stdout).contains(recorded) {
         return;
     }
-    for pid in String::from_utf8_lossy(&out.stdout).split_whitespace() {
-        log::warn!("[sidex-server] stopping leftover process {pid} ({bin_s})");
-        let _ = Command::new("kill").arg("-TERM").arg(pid).status();
-    }
+    log::warn!("[sidex-server] stopping leftover process {pid} ({recorded})");
+    let _ = Command::new("kill")
+        .arg("-TERM")
+        .arg(pid.to_string())
+        .status();
     std::thread::sleep(Duration::from_millis(300));
 }
+
+#[cfg(not(unix))]
+fn stop_leftover(_pid: u32, _recorded: &str) {}
 
 /// Spawn one child on `port` and block until it answers its health check
 /// (the caller runs this off the main thread). On success the child is left
@@ -378,6 +421,8 @@ fn spawn_and_confirm(
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("failed to spawn {}: {e}", bin.display()))?;
+    crate::scmcode_children::tie(&child, "agent server");
+    write_pidfile(bin, child.id());
     pipe_logs(&mut child);
 
     // Do not advertise this child as running until it answers /v1/health.

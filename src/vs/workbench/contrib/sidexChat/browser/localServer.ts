@@ -115,12 +115,16 @@ export function isServerEndpointResolved(): boolean {
  * chat fetch, every completion request) don't pay for a fresh IPC round trip;
  * anything else — not running yet, or the call itself failing — is treated as
  * unresolved so the next call tries again instead of getting stuck on it.
+ *
+ * scmCode: `refresh` skips the memo. The supervisor restarts a crashed server on a
+ * new port, so a reconnect must ask again or it keeps dialing the dead one
+ * (docs/audit TR-13).
  */
-export function resolveServerEndpoint(): Promise<IServerEndpoint> {
+export function resolveServerEndpoint(options?: { refresh?: boolean }): Promise<IServerEndpoint> {
 	if (inFlight) {
 		return inFlight;
 	}
-	if (settled) {
+	if (settled && !options?.refresh) {
 		return Promise.resolve(cached);
 	}
 	const invoke = getTauriInvoke();

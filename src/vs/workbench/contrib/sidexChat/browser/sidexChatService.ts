@@ -453,7 +453,8 @@ export class SidexChatService extends Disposable implements ISidexChatService {
 		// known before the socket is opened — otherwise the first attempt goes
 		// to the default port and fails. Later calls hit the resolver's cache.
 		this._setConnectionState('connecting');
-		void resolveServerEndpoint().then(ep => {
+		// scmCode: a reconnect asks again; a crashed server comes back on a new port (TR-13).
+		void resolveServerEndpoint({ refresh: this._reconnectAttempts > 0 }).then(ep => {
 			if (!ep.running || ep.port <= 0) {
 				this._setConnectionState('disconnected');
 				if (this._reconnectAttempts === 0) {

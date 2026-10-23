@@ -101,6 +101,7 @@ impl TsServerProcess {
                 e
             })
             .ok()?;
+        crate::scmcode_children::tie(&child, "tsserver");
         let stdin = child.stdin.take()?;
         let stdout = child.stdout.take()?;
         let reader = std::io::BufReader::with_capacity(256 * 1024, stdout);
@@ -236,6 +237,7 @@ impl LspServerProcess {
                 e
             })
             .ok()?;
+        crate::scmcode_children::tie(&child, "language server");
 
         let stdin = child.stdin.take()?;
         let stdout = child.stdout.take()?;
