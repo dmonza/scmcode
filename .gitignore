@@ -121,5 +121,6 @@ MEMORY.md
 # Local portable toolchains (e.g. Zig as the CGO C compiler for sidex-server)
 .tools/
 
-# Personal Claude Code instructions (see CLAUDE.md)
+# Personal Claude Code instructions, kept local only
+CLAUDE.md
 CLAUDE.local.md
