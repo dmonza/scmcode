@@ -1,0 +1,108 @@
+# Enforces the third-party license policy that CONTRIBUTING.md and deny.toml describe:
+# every Rust dependency uses a license allowed by deny.toml, and THIRD_PARTY_NOTICES.txt
+# still matches the dependencies (npm packages, built-in extensions and Rust crates).
+name: Licenses
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'src-tauri/**/Cargo.toml'
+      - 'crates/**/Cargo.toml'
+      - 'sidexai/sidex-agent/Cargo.*'
+      - 'sidexai/sidex-cli/Cargo.*'
+      - 'deny.toml'
+      - 'about.toml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/notices/**'
+      - 'scripts/setup-extensions.sh'
+      - 'scripts/builtin-extensions.txt'
+      - '.github/workflows/licenses.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'src-tauri/**/Cargo.toml'
+      - 'crates/**/Cargo.toml'
+      - 'sidexai/sidex-agent/Cargo.*'
+      - 'sidexai/sidex-cli/Cargo.*'
+      - 'deny.toml'
+      - 'about.toml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/notices/**'
+      - 'scripts/setup-extensions.sh'
+      - 'scripts/builtin-extensions.txt'
+      - '.github/workflows/licenses.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: licenses-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The authoritative license check for Rust: cargo-deny reads each Cargo.lock against the
+  # [licenses] allow list in deny.toml. deny.toml lives beside the root manifest, so the two
+  # separate Cargo projects under sidexai/ are pointed at it with --config.
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # cargo-deny only reads Cargo.lock and crate metadata; it never compiles the workspace,
+      # so stable is enough and no Rust pin or system libraries are needed.
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      # Binary install (no compile), like taplo in fmt.yml.
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+
+      - name: Check licenses (root workspace)
+        run: cargo deny --manifest-path Cargo.toml check licenses
+
+      - name: Check licenses (sidex-agent)
+        run: cargo deny --manifest-path sidexai/sidex-agent/Cargo.toml --config deny.toml check licenses
+
+      - name: Check licenses (sidex-cli)
+        run: cargo deny --manifest-path sidexai/sidex-cli/Cargo.toml --config deny.toml check licenses
+
+  # Regenerates THIRD_PARTY_NOTICES.txt and fails when the committed file is out of date or a
+  # component falls outside scripts/notices/policy.json. Mirrors the steps in CONTRIBUTING.md.
+  notices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # cargo metadata and cargo-about read Cargo.lock and the crates in the local registry;
+      # neither compiles the app, so the GTK/WebKit system libraries are not required here.
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      # Pinned so THIRD_PARTY_NOTICES.txt comes out identical on every machine (see policy.json).
+      - name: Install cargo-about
+        run: cargo install cargo-about --locked --features cli --version 0.9.2
+
+      - name: Setup built-in extensions
+        run: bash scripts/setup-extensions.sh
+
+      - name: Check THIRD_PARTY_NOTICES.txt is up to date
+        run: npm run notices:check

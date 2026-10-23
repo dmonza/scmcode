@@ -78,8 +78,10 @@ third-party code it contains. When a PR adds, removes or updates a dependency, a
 file or a built-in extension:
 
 - The dependency must use a license in the policy: `deny.toml` for Rust crates,
-  `scripts/notices/policy.json` for npm packages, Go modules and built-in extensions. Check
-  Rust with `cargo deny --manifest-path Cargo.toml check licenses` ([cargo-deny](https://github.com/EmbarkStudios/cargo-deny)).
+  `scripts/notices/policy.json` for npm packages and built-in extensions. Check Rust with
+  `cargo deny --manifest-path Cargo.toml check licenses` ([cargo-deny](https://github.com/EmbarkStudios/cargo-deny));
+  CI runs it for the root workspace and for `sidexai/sidex-agent` and `sidexai/sidex-cli`.
+  Go module licenses are not checked automatically yet (see `docs/issues/ISSUE-0020`).
   Widening the policy is a licensing decision; explain it in the PR.
 - Regenerate the notices and commit `THIRD_PARTY_NOTICES.txt`:
 

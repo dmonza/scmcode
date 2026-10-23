@@ -188,6 +188,14 @@ jobs:
           \) -exec cp {} dist-artifacts/ \; 2>/dev/null || true
           ls -la dist-artifacts/
 
+      # scmCode: fail before publishing if a package is missing LICENSE, NOTICE.md or
+      # THIRD_PARTY_NOTICES.txt. The script covers the Linux and macOS packages; checking
+      # the Windows installers (.exe/.msi) is still pending (docs/issues/ISSUE-0021).
+      - name: Verify legal notices in packages
+        if: runner.os == 'macOS' || runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/notices/verify-installers.sh dist-artifacts
+
       - name: Sign Windows installers (Azure Trusted Signing)
         if: runner.os == 'Windows' && env.HAS_AZURE_SIGNING == 'true'
         uses: Azure/artifact-signing-action@v1.1.0

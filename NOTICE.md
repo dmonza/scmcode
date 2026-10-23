@@ -56,14 +56,16 @@ THIRD_PARTY_NOTICES.txt.
 ### License policy
 
 Dependencies may use only the licenses listed in [`deny.toml`](./deny.toml) (Rust, checked by
-cargo-deny) and [`scripts/notices/policy.json`](./scripts/notices/policy.json) (npm, Go and
+cargo-deny) and [`scripts/notices/policy.json`](./scripts/notices/policy.json) (npm and
 built-in extensions). CI fails when a dependency falls outside that list or when
 THIRD_PARTY_NOTICES.txt no longer matches the dependencies; `npm run notices` regenerates it.
 See [CONTRIBUTING](./CONTRIBUTING.md#licenses-and-third-party-notices).
 
 The AI agent (`sidexai/`: the Go server and the Rust `sidex-agent` and `sidex-cli` crates) is
-not included in the installers yet. Its dependencies are checked against the same policy, but
-they are not in THIRD_PARTY_NOTICES.txt; they must be added before the agent ships.
+not included in the installers yet, so its dependencies are not in THIRD_PARTY_NOTICES.txt;
+they must be added before the agent ships. The agent's Rust crates (`sidex-agent`,
+`sidex-cli`) are checked against the same license policy by cargo-deny; the Go server's
+module licenses are not checked automatically yet (see `docs/issues/ISSUE-0020`).
 
 ## No warranty, no liability
 

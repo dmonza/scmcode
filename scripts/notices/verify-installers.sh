@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Check that every Linux or macOS package in a folder carries scmCode's legal notices:
 # LICENSE, NOTICE.md and THIRD_PARTY_NOTICES.txt. Release builds run it on the collected
-# artifacts (.github/workflows/release.yml); Windows installers are checked by a PowerShell
-# step in the same workflow.
+# artifacts (.github/workflows/release.yml). The Windows installers (.exe/.msi) are not
+# checked yet; that step is still pending (docs/issues/ISSUE-0021).
 #
 #   bash scripts/notices/verify-installers.sh dist-artifacts
 set -euo pipefail

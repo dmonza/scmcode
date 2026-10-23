@@ -5,8 +5,9 @@
 # a license that is not listed below fails the build until someone reviews it.
 #
 # Keep `allow` in sync with "allowedLicenses" in scripts/notices/policy.json, which applies
-# the same policy to npm packages, Go modules and built-in extensions. The notices generator
-# checks that the two lists match.
+# the same policy to npm packages and built-in extensions. The notices generator checks that
+# the two lists match. (Go module licenses are not checked automatically yet; see
+# docs/issues/ISSUE-0020.)
 
 [graph]
 # Dev-dependencies are not shipped.
