@@ -1,0 +1,42 @@
+# cargo-about configuration. It collects the license texts of the Rust crates compiled into
+# scmCode for THIRD_PARTY_NOTICES.txt (scripts/notices/generate-notices.mjs, which runs
+# `cargo about generate` with this file and scripts/notices/about.hbs).
+#
+# `accepted` is a preference order: for a crate offered under a choice of licenses
+# ("MIT OR Apache-2.0"), the first accepted license is the one reproduced. Which licenses
+# dependencies may use at all is enforced by cargo-deny (deny.toml).
+accepted = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-3-Clause",
+  "BSD-2-Clause",
+  "BSD-1-Clause",
+  "ISC",
+  "Zlib",
+  "Unicode-3.0",
+  "BSL-1.0",
+  "MPL-2.0",
+  "CDLA-Permissive-2.0",
+  "bzip2-1.0.6",
+  "0BSD",
+  "MIT-0",
+  "CC0-1.0",
+  "Unlicense",
+]
+
+# The platforms scmCode is released for (.github/workflows/release.yml). Listing them makes
+# the output the same whichever machine generates it.
+targets = [
+  "aarch64-apple-darwin",
+  "x86_64-apple-darwin",
+  "x86_64-pc-windows-msvc",
+  "aarch64-pc-windows-msvc",
+  "x86_64-unknown-linux-gnu",
+]
+
+# Dev-dependencies are not shipped. Build-dependencies are kept: some generate code or
+# embed data into the binary.
+ignore-dev-dependencies = true
+ignore-build-dependencies = false
+

@@ -1,0 +1,109 @@
+# Built-in extensions shipped with scmCode.
+#
+# scripts/setup-extensions.sh copies exactly these folders from Code - OSS
+# (https://github.com/microsoft/vscode, MIT License) at the commit pinned in that script.
+# Nothing else is copied: no local Visual Studio Code, Cursor or ~/.vscode/extensions.
+#
+# Every entry was reviewed for its license and for the third-party material it declares in
+# its cgmanifest.json. THIRD_PARTY_NOTICES.txt reproduces those notices
+# (scripts/notices/generate-notices.mjs). Add an extension only after the same review, then
+# regenerate the notices.
+#
+# Reviewed and NOT shipped:
+#   git                           Replaced by scmCode's Rust Git provider (and skipped by
+#                                 scripts/generate-extension-meta.js).
+#   github, github-authentication, microsoft-authentication, tunnel-forwarding
+#                                 Account and remote-service clients. scmCode has no accounts.
+#   terminal-suggest              Includes material derived from fish-shell (GPL-2.0). Its
+#                                 code does not run in scmCode.
+#   vscode-api-tests, vscode-colorize-tests, vscode-colorize-perf-tests, vscode-test-resolver
+#                                 Code - OSS test fixtures.
+#
+# Extensions that contain code (a "main" or "browser" entry) are copied from source and
+# are not compiled, so only their declarative contributions (grammars, languages,
+# settings, snippets, themes) take effect in scmCode.
+
+bat
+clojure
+coffeescript
+configuration-editing
+cpp
+csharp
+css
+css-language-features
+dart
+debug-auto-launch
+debug-server-ready
+diff
+docker
+dotenv
+emmet
+extension-editing
+fsharp
+git-base
+go
+groovy
+grunt
+gulp
+handlebars
+hlsl
+html
+html-language-features
+ini
+ipynb
+jake
+java
+javascript
+json
+json-language-features
+julia
+latex
+less
+log
+lua
+make
+markdown-basics
+markdown-language-features
+markdown-math
+media-preview
+merge-conflict
+mermaid-chat-features
+notebook-renderers
+npm
+objective-c
+perl
+php
+php-language-features
+powershell
+prompt-basics
+pug
+python
+r
+razor
+references-view
+restructuredtext
+ruby
+rust
+scss
+search-result
+shaderlab
+shellscript
+simple-browser
+sql
+swift
+theme-abyss
+theme-defaults
+theme-kimbie-dark
+theme-monokai
+theme-monokai-dimmed
+theme-quietlight
+theme-red
+theme-seti
+theme-solarized-dark
+theme-solarized-light
+theme-tomorrow-night-blue
+typescript-basics
+typescript-language-features
+vb
+xml
+yaml

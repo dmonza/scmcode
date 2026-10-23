@@ -12,7 +12,8 @@ respect the project's two pillars (see the [README](./README.md#pillars)):
    [PRIVACY.md](./PRIVACY.md), and must go to a service the user chose.
 
 Never remove the Microsoft or Siden Technologies copyright headers from files that carry
-them: the MIT License requires that they be preserved.
+them: the MIT License requires that they be preserved. Dependencies and vendored code are
+covered in [Licenses and third-party notices](#licenses-and-third-party-notices).
 
 ## Quick Start
 
@@ -69,6 +70,33 @@ scmCode name. Don't mass-rename internals.
 ### General
 - Keep PRs focused — one feature or fix per PR when possible
 - If you're making a big architectural change, open an issue first to discuss
+
+### Licenses and third-party notices
+
+Every installer ships `THIRD_PARTY_NOTICES.txt`, the notices and license texts of all the
+third-party code it contains. When a PR adds, removes or updates a dependency, a vendored
+file or a built-in extension:
+
+- The dependency must use a license in the policy: `deny.toml` for Rust crates,
+  `scripts/notices/policy.json` for npm packages, Go modules and built-in extensions. Check
+  Rust with `cargo deny --manifest-path Cargo.toml check licenses` ([cargo-deny](https://github.com/EmbarkStudios/cargo-deny)).
+  Widening the policy is a licensing decision; explain it in the PR.
+- Regenerate the notices and commit `THIRD_PARTY_NOTICES.txt`:
+
+  ```bash
+  npm ci
+  bash scripts/setup-extensions.sh
+  cargo install cargo-about --locked --features cli --version 0.9.2   # once
+  npm run notices
+  ```
+
+  CI (`.github/workflows/licenses.yml`) fails when the file is out of date.
+- Third-party code copied into the repository needs its license file next to it and an entry
+  in `scripts/notices/embedded.json` (the generator fails on a `cgmanifest.json` under `src/`
+  that is not listed there).
+- Built-in extensions come only from Code - OSS, through `scripts/builtin-extensions.txt`.
+  Never copy extensions from an installed VS Code, Cursor or `~/.vscode/extensions`: those are
+  not redistributable.
 
 ## Project Layout
 

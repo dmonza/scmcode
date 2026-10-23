@@ -16,19 +16,54 @@ As required by the MIT License, the original copyright notices and permission no
 kept in [LICENSE](./LICENSE) and in the headers of the source files that carry them. Those
 headers must not be removed. New scmCode files may carry their own notice.
 
-Third-party packages (npm, Cargo and Go dependencies, bundled grammars, fonts and icons)
-keep their own licenses, as declared in their respective package metadata.
+Third-party components (npm, Cargo and Go dependencies, bundled grammars, fonts and icons)
+keep their own licenses. [THIRD_PARTY_NOTICES.txt](./THIRD_PARTY_NOTICES.txt) reproduces
+the notices and license texts of everything the installers include besides scmCode's own
+code, and every installer ships it together with LICENSE and this NOTICE.
 
 ### Third-party files kept in this repository
 
-These files are committed outside the dependency folders and ship with the app, so their
-licenses are listed here:
+These files are committed outside the dependency folders. Each one has its license text
+next to it:
 
-| File | Origin | License |
-|---|---|---|
-| `public/codicon.ttf` | Codicons icon font, [`@vscode/codicons`](https://github.com/microsoft/vscode-codicons), Copyright (c) Microsoft Corporation | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
-| `public/onig.wasm` | [`vscode-oniguruma`](https://github.com/microsoft/vscode-oniguruma), Copyright (c) Microsoft Corporation, which compiles [Oniguruma](https://github.com/kkos/oniguruma), Copyright (c) K.Kosako | MIT (vscode-oniguruma), BSD 2-Clause (Oniguruma) |
-| `public/webview-pre/` | Webview host pages from Code - OSS, Copyright (c) Microsoft Corporation | MIT |
+| File | Origin | License | License text |
+|---|---|---|---|
+| `public/codicon.ttf`, `src/vs/base/browser/ui/codicons/codicon/codicon.ttf` | Codicons icon font, [`@vscode/codicons`](https://github.com/microsoft/vscode-codicons) 0.0.45, Copyright (c) Microsoft Corporation | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | `public/codicon.ttf.license.txt` |
+| `public/onig.wasm` | [`vscode-oniguruma`](https://github.com/microsoft/vscode-oniguruma) 2.0.1, Copyright (c) Microsoft Corporation, which compiles [Oniguruma](https://github.com/kkos/oniguruma) 6.9.5_rev1, Copyright (c) K.Kosako | MIT (vscode-oniguruma), BSD 2-Clause (Oniguruma) | `public/onig.wasm.license.txt` |
+| `public/webview-pre/` | Webview host pages from Code - OSS, Copyright (c) Microsoft Corporation | MIT | `LICENSE` |
+| `src/vs/base/browser/dompurify/` | [DOMPurify](https://github.com/cure53/DOMPurify) 3.2.7, Copyright (c) Cure53 and other contributors | Apache-2.0 (offered under Apache-2.0 or MPL-2.0; used under Apache-2.0) | `dompurify.license.txt` |
+| `src/vs/base/common/marked/` | [marked](https://github.com/markedjs/marked) 14.0.0, Copyright (c) Christopher Jeffrey | MIT | `marked.license.txt` |
+| `src/vs/base/common/semver/` | [node-semver](https://github.com/npm/node-semver) 5.5.0, Copyright (c) Isaac Z. Schlueter and Contributors | ISC | `semver.license.txt` |
+| `src/vs/workbench/contrib/terminal/common/scripts/psreadline/` | [PSReadLine](https://github.com/PowerShell/PSReadLine) 2.4.4-beta4, Copyright (c) 2013, Jason Shirk | BSD 2-Clause | `PSReadLine.license.txt` |
+| `shellIntegration.ps1` in `src/vs/workbench/contrib/terminal/common/scripts/` and `src-tauri/shell-integration/` | Includes code from [posh-git](https://github.com/dahlbyk/posh-git), Copyright (c) 2010-2018 Keith Dahlby, Keith Hill, and contributors | MIT | `posh-git.license.txt` in both folders |
+| `src/vs/editor/browser/gpu/taskQueue.ts`, `src/vs/workbench/contrib/terminal/browser/media/xterm.css` | Code adapted from [xterm.js](https://github.com/xtermjs/xterm.js), Copyright (c) The xterm.js authors | MIT | File headers; the xterm.js license in THIRD_PARTY_NOTICES.txt |
+
+The Code - OSS `cgmanifest.json` for posh-git carried the Oniguruma license by mistake; scmCode's
+copy has the posh-git license.
+
+### Built-in extensions
+
+The installers include built-in extensions (language grammars, snippets, themes) from
+Code - OSS 1.115.0, Copyright (c) Microsoft Corporation, MIT. They are not stored in this
+repository: [`scripts/setup-extensions.sh`](./scripts/setup-extensions.sh) fetches them from
+the Code - OSS repository at a pinned commit, and only the folders listed and reviewed in
+[`scripts/builtin-extensions.txt`](./scripts/builtin-extensions.txt) are included. Nothing is
+copied from an installed Visual Studio Code, Cursor or `~/.vscode/extensions`, whose
+distributions and Marketplace extensions have their own licenses. The third-party grammars and
+themes inside these extensions, and Code - OSS's own ThirdPartyNotices.txt, are reproduced in
+THIRD_PARTY_NOTICES.txt.
+
+### License policy
+
+Dependencies may use only the licenses listed in [`deny.toml`](./deny.toml) (Rust, checked by
+cargo-deny) and [`scripts/notices/policy.json`](./scripts/notices/policy.json) (npm, Go and
+built-in extensions). CI fails when a dependency falls outside that list or when
+THIRD_PARTY_NOTICES.txt no longer matches the dependencies; `npm run notices` regenerates it.
+See [CONTRIBUTING](./CONTRIBUTING.md#licenses-and-third-party-notices).
+
+The AI agent (`sidexai/`: the Go server and the Rust `sidex-agent` and `sidex-cli` crates) is
+not included in the installers yet. Its dependencies are checked against the same policy, but
+they are not in THIRD_PARTY_NOTICES.txt; they must be added before the agent ships.
 
 ## No warranty, no liability
 

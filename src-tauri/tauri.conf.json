@@ -40,10 +40,13 @@
     "category": "DeveloperTool",
     "shortDescription": "A minimal, privacy-focused code editor.",
     "longDescription": "scmCode is a minimal, privacy-focused code editor. It is a derivative of SideX (a Tauri port of Code - OSS) with telemetry, analytics and vendor services removed.",
-    "resources": [
-      "extension-host/*",
-      "shell-integration/*"
-    ],
+    "resources": {
+      "extension-host/*": "extension-host/",
+      "shell-integration/*": "shell-integration/",
+      "../LICENSE": "LICENSE",
+      "../NOTICE.md": "NOTICE.md",
+      "../THIRD_PARTY_NOTICES.txt": "THIRD_PARTY_NOTICES.txt"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

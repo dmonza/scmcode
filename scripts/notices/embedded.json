@@ -1,0 +1,130 @@
+{
+  "$comment": [
+    "Third-party files kept in the scmCode repository (outside dependency folders) and the",
+    "license file that covers each one. scripts/notices/generate-notices.mjs reproduces them",
+    "in THIRD_PARTY_NOTICES.txt and fails if a cgmanifest.json under src/ is not listed here,",
+    "so newly vendored code cannot ship without a notice. NOTICE.md shows the same list."
+  ],
+  "components": [
+    {
+      "name": "Codicons",
+      "version": "0.0.45 (npm @vscode/codicons)",
+      "url": "https://github.com/microsoft/vscode-codicons",
+      "license": "CC-BY-4.0",
+      "files": [
+        "public/codicon.ttf",
+        "src/vs/base/browser/ui/codicons/codicon/codicon.ttf"
+      ],
+      "licenseFiles": [
+        "public/codicon.ttf.license.txt"
+      ]
+    },
+    {
+      "name": "vscode-oniguruma",
+      "version": "2.0.1, a WebAssembly build of Oniguruma 6.9.5_rev1",
+      "url": "https://github.com/microsoft/vscode-oniguruma",
+      "license": "MIT AND BSD-2-Clause",
+      "files": [
+        "public/onig.wasm"
+      ],
+      "licenseFiles": [
+        "public/onig.wasm.license.txt"
+      ],
+      "cgmanifests": [
+        "src/vs/workbench/services/textMate/common/cgmanifest.json"
+      ]
+    },
+    {
+      "name": "DOMPurify",
+      "version": "3.2.7",
+      "url": "https://github.com/cure53/DOMPurify",
+      "license": "Apache-2.0",
+      "note": "DOMPurify is offered under Apache-2.0 or MPL-2.0. scmCode uses it under Apache-2.0.",
+      "files": [
+        "src/vs/base/browser/dompurify/"
+      ],
+      "licenseFiles": [
+        "src/vs/base/browser/dompurify/dompurify.license.txt"
+      ],
+      "cgmanifests": [
+        "src/vs/base/browser/dompurify/cgmanifest.json"
+      ]
+    },
+    {
+      "name": "marked",
+      "version": "14.0.0",
+      "url": "https://github.com/markedjs/marked",
+      "license": "MIT",
+      "files": [
+        "src/vs/base/common/marked/"
+      ],
+      "licenseFiles": [
+        "src/vs/base/common/marked/marked.license.txt"
+      ],
+      "cgmanifests": [
+        "src/vs/base/common/marked/cgmanifest.json"
+      ]
+    },
+    {
+      "name": "node-semver",
+      "version": "5.5.0",
+      "url": "https://github.com/npm/node-semver",
+      "license": "ISC",
+      "files": [
+        "src/vs/base/common/semver/"
+      ],
+      "licenseFiles": [
+        "src/vs/base/common/semver/semver.license.txt"
+      ],
+      "cgmanifests": [
+        "src/vs/base/common/semver/cgmanifest.json"
+      ]
+    },
+    {
+      "name": "PSReadLine",
+      "version": "2.4.4-beta4",
+      "url": "https://github.com/PowerShell/PSReadLine",
+      "license": "BSD-2-Clause",
+      "files": [
+        "src/vs/workbench/contrib/terminal/common/scripts/psreadline/"
+      ],
+      "licenseFiles": [
+        "src/vs/workbench/contrib/terminal/common/scripts/psreadline/PSReadLine.license.txt"
+      ],
+      "cgmanifests": [
+        "src/vs/workbench/contrib/terminal/common/scripts/psreadline/cgmanifest.json"
+      ]
+    },
+    {
+      "name": "posh-git",
+      "version": "70e44dc0c2cdaf10c0cc8eb9ef5a9ca65ab63dcf",
+      "url": "https://github.com/dahlbyk/posh-git",
+      "license": "MIT",
+      "note": "Code from posh-git is included in the PowerShell shell integration script.",
+      "files": [
+        "src/vs/workbench/contrib/terminal/common/scripts/shellIntegration.ps1",
+        "src-tauri/shell-integration/shellIntegration.ps1"
+      ],
+      "licenseFiles": [
+        "src/vs/workbench/contrib/terminal/common/scripts/posh-git.license.txt"
+      ],
+      "cgmanifests": [
+        "src/vs/workbench/contrib/terminal/common/scripts/cgmanifest.json"
+      ]
+    },
+    {
+      "name": "xterm.js",
+      "version": "",
+      "url": "https://github.com/xtermjs/xterm.js",
+      "license": "MIT",
+      "files": [
+        "src/vs/editor/browser/gpu/taskQueue.ts",
+        "src/vs/workbench/contrib/terminal/browser/media/xterm.css"
+      ],
+      "licenseFiles": [
+        "node_modules/@xterm/xterm/LICENSE"
+      ],
+      "note": "Code adapted from xterm.js, which is MIT-licensed like the @xterm packages in section 2."
+    }
+  ]
+}
