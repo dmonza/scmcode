@@ -86,4 +86,5 @@ src/vs/workbench/contrib/sidexUpdate/browser/sidexUpdate.contribution.ts
 src/vs/workbench/contrib/timeline/browser/timeline.contribution.ts
 src/vs/workbench/contrib/timeline/browser/timelinePane.ts
 src/vs/workbench/contrib/timeline/common/timeline.ts
+src/vs/workbench/contrib/timeline/common/timelineService.ts
 src/vs/workbench/services/update/browser/updateService.ts

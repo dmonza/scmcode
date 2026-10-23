@@ -28,7 +28,11 @@ urlencoding = "2"
 nix = { version = "0.31", default-features = false, features = ["signal"] }
 
 [target.'cfg(windows)'.dependencies]
-process-wrap = { version = "10", default-features = false, features = ["std", "job-object", "creation-flags"] }
+process-wrap = { version = "10", default-features = false, features = [
+  "std",
+  "job-object",
+  "creation-flags",
+] }
 windows = { version = "0.62", features = ["Win32_System_Threading"] }
 
 [dev-dependencies]

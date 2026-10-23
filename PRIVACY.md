@@ -82,7 +82,6 @@ host (`outlook.office.com` / `substrate.office.com`) was still observed on a mac
 in with a Microsoft 365 account. It is made by the runtime outside its browser network stack
 and could not be disabled with webview arguments. This behavior belongs to the WebView2
 runtime and Windows, not to scmCode's code, and may vary by version and configuration.
-Tracked in [ISSUE-0001](./docs/issues/ISSUE-0001-webview2-m365-startup-connection.md).
 
 ## Third-party extensions
 

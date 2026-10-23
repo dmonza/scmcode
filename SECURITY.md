@@ -69,4 +69,4 @@ Out of scope:
   scope when such content gets past a permission prompt or another documented safeguard.
 - **Remote SSH connections don't verify the server's host key yet**, so a
   man-in-the-middle can impersonate the server. Use them only on networks you trust until
-  this is fixed ([ISSUE-0009](./docs/issues/ISSUE-0009-ssh-host-key-not-verified.md)).
+  this is fixed.
