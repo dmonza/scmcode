@@ -3,6 +3,7 @@ mod app_origin;
 mod commands;
 mod navigation;
 mod scmcode_asset;
+mod scmcode_blocking;
 #[cfg(feature = "selftest")]
 mod selftest;
 mod server;
@@ -18,7 +19,6 @@ use commands::index::IndexStore;
 use commands::lsp::LspState;
 use commands::orchestrate::OrchestrationStore;
 use commands::remote::RemoteManagerStore;
-use commands::settings::SettingsStore;
 use commands::storage::StorageDb;
 use commands::tasks::TaskProcessStore;
 use commands::terminal::TerminalStore;
@@ -479,7 +479,6 @@ pub fn run() {
         .manage(Arc::new(IndexStore::new(false)))
         .manage(ExtensionPlatformSupervisor::new())
         .manage(ExtensionDiagnosticsStore::new())
-        .manage(Arc::new(SettingsStore::new()))
         .manage(Arc::new(sidex_extension_api::CommandRegistry::new()))
         .manage(Arc::new(RemoteManagerStore::new()))
         .manage(Arc::new(
@@ -603,19 +602,6 @@ pub fn run() {
                     Arc::new(ext::TestApi::new()),
                     Arc::new(ext::EnvApi::new()),
                 )));
-            }
-
-            {
-                let settings_store = app.state::<Arc<SettingsStore>>();
-                let user_settings_path = app_data.join("UserData").join("User").join("settings.json");
-                // Always record the path so user-scope updates persist to
-                // disk, even on first launch when the file doesn't exist yet.
-                settings_store.set_user_path(&user_settings_path);
-                if user_settings_path.exists() {
-                    if let Err(e) = settings_store.load_user(&user_settings_path) {
-                        log::warn!("failed to pre-load user settings: {e}");
-                    }
-                }
             }
 
             let sidex_db_path = app_data.join("sidex_state.db");
@@ -798,10 +784,7 @@ pub fn run() {
             commands::session_update_title,
             commands::session_pin,
             commands::session_archive,
-            // Layered settings
-            commands::settings_get,
-            commands::settings_update,
-            commands::settings_load,
+            // Settings: JSONC helpers only; the workbench owns settings.json (scmCode).
             commands::settings_parse_jsonc,
             commands::settings_modify_jsonc,
             commands::git_status,

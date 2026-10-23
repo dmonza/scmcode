@@ -34,6 +34,9 @@ pub struct JsoncComment {
 
 /// Parse a JSONC string into a `serde_json::Value`.
 pub fn parse_jsonc(input: &str) -> Result<Value> {
+    // scmCode: a UTF-8 byte order mark is valid in settings.json (VS Code's JSON
+    // parser skips it); serde_json rejects it.
+    let input = input.strip_prefix('\u{feff}').unwrap_or(input);
     let stripped = strip_comments(input);
     let cleaned = remove_trailing_commas(&stripped);
     serde_json::from_str(&cleaned).context("failed to parse JSONC")
@@ -46,19 +49,21 @@ pub fn parse_jsonc_with_comments(input: &str) -> Result<(Value, Vec<JsoncComment
 
 /// Remove comments but preserve line numbers (replace comment chars with spaces).
 pub fn strip_comments(input: &str) -> String {
+    // scmCode: build the output as bytes. Pushing each byte as a `char` turned every
+    // non-ASCII character (`José`, `año`) into mojibake (docs/audit TR-08).
     let b = input.as_bytes();
-    let (len, mut out, mut i) = (b.len(), String::with_capacity(b.len()), 0);
+    let (len, mut out, mut i) = (b.len(), Vec::with_capacity(b.len()), 0);
     while i < len {
         match b[i] {
             b'"' => {
-                out.push('"');
+                out.push(b'"');
                 i += 1;
                 i = skip_string(b, i, &mut out);
             }
             b'/' if i + 1 < len && b[i + 1] == b'/' => {
                 i += 2;
                 while i < len && b[i] != b'\n' {
-                    out.push(' ');
+                    out.push(b' ');
                     i += 1;
                 }
             }
@@ -68,25 +73,25 @@ pub fn strip_comments(input: &str) -> String {
                 while i < len && depth > 0 {
                     if i + 1 < len && b[i] == b'/' && b[i + 1] == b'*' {
                         depth += 1;
-                        out.push_str("  ");
+                        out.extend_from_slice(b"  ");
                         i += 2;
                     } else if i + 1 < len && b[i] == b'*' && b[i + 1] == b'/' {
                         depth -= 1;
-                        out.push_str("  ");
+                        out.extend_from_slice(b"  ");
                         i += 2;
                     } else {
-                        out.push(if b[i] == b'\n' { '\n' } else { ' ' });
+                        out.push(if b[i] == b'\n' { b'\n' } else { b' ' });
                         i += 1;
                     }
                 }
             }
             _ => {
-                out.push(b[i] as char);
+                out.push(b[i]);
                 i += 1;
             }
         }
     }
-    out
+    bytes_to_string(out)
 }
 
 /// Pretty-print a `serde_json::Value` as JSONC-compatible JSON.
@@ -135,22 +140,28 @@ pub fn modify_jsonc(input: &str, path: &[&str], value: &Value) -> Result<String>
 
 // --- helpers ---
 
-fn skip_string(b: &[u8], mut i: usize, out: &mut String) -> usize {
+fn skip_string(b: &[u8], mut i: usize, out: &mut Vec<u8>) -> usize {
     while i < b.len() {
         if b[i] == b'\\' && i + 1 < b.len() {
-            out.push(b[i] as char);
-            out.push(b[i + 1] as char);
+            out.extend_from_slice(&b[i..i + 2]);
             i += 2;
         } else if b[i] == b'"' {
-            out.push('"');
+            out.push(b'"');
             i += 1;
             break;
         } else {
-            out.push(b[i] as char);
+            out.push(b[i]);
             i += 1;
         }
     }
     i
+}
+
+/// The passes above copy the input's bytes unchanged or replace whole ASCII
+/// comment and comma bytes, so their output is valid UTF-8 whenever the input
+/// (a `&str`) is.
+fn bytes_to_string(out: Vec<u8>) -> String {
+    String::from_utf8(out).unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned())
 }
 
 fn fmt_val(v: &Value, ind: &str, d: usize) -> String {
@@ -359,10 +370,10 @@ fn extract_comments(input: &str) -> Vec<JsoncComment> {
 
 fn remove_trailing_commas(input: &str) -> String {
     let b = input.as_bytes();
-    let (len, mut out, mut i) = (b.len(), String::with_capacity(b.len()), 0);
+    let (len, mut out, mut i) = (b.len(), Vec::with_capacity(b.len()), 0);
     while i < len {
         if b[i] == b'"' {
-            out.push('"');
+            out.push(b'"');
             i += 1;
             i = skip_string(b, i, &mut out);
         } else if b[i] == b',' {
@@ -373,20 +384,37 @@ fn remove_trailing_commas(input: &str) -> String {
             if j < len && matches!(b[j], b']' | b'}') {
                 i += 1;
             } else {
-                out.push(',');
+                out.push(b',');
                 i += 1;
             }
         } else {
-            out.push(b[i] as char);
+            out.push(b[i]);
             i += 1;
         }
     }
-    out
+    bytes_to_string(out)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // scmCode: docs/audit TR-08.
+    #[test]
+    fn non_ascii_text_survives_in_strings_and_comments() {
+        let v = parse_jsonc(
+            "{\n // ñandú — comentario\n \"p\": \"C:/Users/José/año\", /* 日本 */ \"e\": \"👍🏽\",\n}",
+        )
+        .unwrap();
+        assert_eq!(v["p"], "C:/Users/José/año");
+        assert_eq!(v["e"], "👍🏽");
+    }
+
+    #[test]
+    fn leading_byte_order_mark_is_accepted() {
+        let v = parse_jsonc("\u{feff}{ \"a\": true }").unwrap();
+        assert_eq!(v["a"], true);
+    }
 
     #[test]
     fn parse_strips_comments_and_trailing_commas() {

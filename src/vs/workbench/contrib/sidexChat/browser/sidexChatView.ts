@@ -34,6 +34,7 @@ import { SidexOrchestrator, OrchestrationView, StreamConsumer } from './orchestr
 import { IAccountService } from './account/accountService.js';
 import { AccountPanel } from './account/accountPanel.js';
 import { serverWsUrl } from './localServer.js';
+import { scmcodeSettingsInvoke } from './settings/scmcodeChatSettings.js';
 
 const $ = DOM.$;
 
@@ -138,7 +139,7 @@ export class SidexChatViewPane extends ViewPane {
 		this.chatService.connect();
 
 		// Fetch autoScroll setting from settings
-		const tInvoke = (globalThis as any).__TAURI_INTERNALS__?.invoke;
+		const tInvoke = scmcodeSettingsInvoke((globalThis as any).__TAURI_INTERNALS__?.invoke); // scmCode: TR-08
 		if (tInvoke) {
 			tInvoke('settings_get', { section: 'sidex.general' }).then(raw => {
 				let data: any = raw;
@@ -889,7 +890,7 @@ export class SidexChatViewPane extends ViewPane {
 		this._orchView?.dispose();
 		this._orchestrator?.dispose();
 
-		const wsUrl = serverWsUrl(this.configurationService.getValue<string>('sidex.chat.serverUrl'));
+		const wsUrl = serverWsUrl(); // scmCode: no override (docs/audit TR-04)
 
 		this._orchestrator = new SidexOrchestrator();
 		this._viewDisposables.add(this._orchestrator);

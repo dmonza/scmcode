@@ -78,7 +78,7 @@ pub fn fetch(args: &Args, _ctx: &ToolContext) -> Result<String> {
     if text.len() > 50000 {
         Ok(format!(
             "{}\n\n[content truncated at 50000 chars]",
-            &text[..50000]
+            &text[..text.floor_char_boundary(50000)]
         ))
     } else {
         Ok(text)

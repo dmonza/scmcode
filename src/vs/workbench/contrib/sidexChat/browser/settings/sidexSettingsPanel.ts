@@ -14,6 +14,7 @@ import { RulesSection } from './sections/rulesSection.js';
 import { ToolsSection } from './sections/toolsSection.js';
 import { IndexingSection } from './sections/indexingSection.js';
 import { ConfigurationSection } from './sections/configurationSection.js';
+import { scmcodeSettingsInvoke } from './scmcodeChatSettings.js';
 
 export interface NavItem {
 	type?: 'separator';
@@ -79,7 +80,8 @@ export class SidexSettingsPanel extends Disposable {
 
 	private _getTauriInvoke(): ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>) | null {
 		const g = globalThis as unknown as { __TAURI_INTERNALS__?: { invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> } };
-		return g.__TAURI_INTERNALS__?.invoke ?? null;
+		// scmCode: settings_get / settings_update go to the configuration service (TR-08).
+		return scmcodeSettingsInvoke(g.__TAURI_INTERNALS__?.invoke ?? null);
 	}
 
 	private _buildDOM(): void {

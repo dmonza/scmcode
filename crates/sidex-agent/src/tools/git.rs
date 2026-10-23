@@ -46,11 +46,18 @@ pub fn commit(args: &Args, ctx: &ToolContext) -> Result<String> {
     git_cmd(&ctx.cwd, &["commit", "-m", message])
 }
 
+/// scmCode: every git call the agent makes skips the repository's `core.fsmonitor`
+/// program, as `sidex-git`'s `git_command()` does (docs/audit TR-05), and never
+/// waits for a terminal credential prompt (TR-16).
+pub(super) fn git_command() -> Command {
+    let mut cmd = no_console(Command::new("git"));
+    cmd.args(["-c", "core.fsmonitor=false"]);
+    cmd.env("GIT_TERMINAL_PROMPT", "0");
+    cmd
+}
+
 fn git_cmd(cwd: &str, args: &[&str]) -> Result<String> {
-    let output = no_console(Command::new("git"))
-        .args(args)
-        .current_dir(cwd)
-        .output()?;
+    let output = git_command().args(args).current_dir(cwd).output()?;
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);

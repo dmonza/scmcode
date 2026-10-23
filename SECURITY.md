@@ -59,6 +59,12 @@ Out of scope:
 - **Extensions and workspaces run code.** Extensions run with your permissions, and tasks,
   Git hooks, build scripts and MCP servers in a workspace execute on your machine. See
   [Security is your responsibility](./README.md#security-is-your-responsibility).
+- **There is no Workspace Trust (Restricted Mode) yet.** VS Code keeps a folder's
+  automatic actions off until you trust it; scmCode doesn't ask. Opening a folder must
+  not run anything from it on its own: the Git status that refreshes the Source Control
+  view runs with the repository's `core.fsmonitor` program turned off, and workspace
+  settings can no longer point the AI chat or completions at another server. A way to
+  make scmCode run code from a folder just by opening it is in scope.
 - **AI agents can be misled by the content they read** (prompt injection). Reports are in
   scope when such content gets past a permission prompt or another documented safeguard.
 - **Remote SSH connections don't verify the server's host key yet**, so a

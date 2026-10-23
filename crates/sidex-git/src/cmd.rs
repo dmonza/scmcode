@@ -7,7 +7,20 @@ use crate::error::{GitError, GitResult};
 
 /// Build a `Command` for git, with `CREATE_NO_WINDOW` on Windows.
 pub(crate) fn git_command() -> Command {
-    let cmd = Command::new("git");
+    let mut cmd = Command::new("git");
+    // scmCode: never run the repository's `core.fsmonitor` program. git runs it on
+    // every index refresh (the SCM view's `status` every 10 s), and the setting can
+    // come with a folder the user opens. VS Code relies on Workspace Trust to keep
+    // its git extension off in an untrusted folder; scmCode has no Workspace Trust
+    // yet (docs/audit TR-05, SEC-19), so it turns fsmonitor off, which only costs
+    // speed on very large repositories.
+    cmd.args(["-c", "core.fsmonitor=false"]);
+    // scmCode: never wait for a username or password on a terminal the app doesn't
+    // have; git fails instead (a GUI credential helper such as Git Credential Manager
+    // still works). VS Code answers these prompts through GIT_ASKPASS
+    // (`extensions/git/src/askpass.ts`); scmCode has no askpass UI yet
+    // (docs/audit TR-16).
+    cmd.env("GIT_TERMINAL_PROMPT", "0");
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;

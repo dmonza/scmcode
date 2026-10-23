@@ -12,6 +12,9 @@ use std::thread;
 use std::time::{Duration, Instant};
 use tauri::AppHandle;
 
+/// scmCode: how long the extension host may take to report its port (docs/audit TR-16).
+const EXT_HOST_READY_TIMEOUT: Duration = Duration::from_secs(60);
+
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 
@@ -340,11 +343,32 @@ fn spawn_host_process(
     };
 
     let port = {
-        let mut reader = BufReader::new(stdout);
-        let mut line = String::new();
-        let bytes_read = reader
-            .read_line(&mut line)
-            .map_err(|e| format!("failed to read extension host port: {e}{}", recent_stderr()))?;
+        // scmCode: read the port line on its own thread with a deadline. A bare
+        // `read_line` here waited forever on a host that never printed it, while the
+        // caller held the supervisor lock that `stop` (and app exit) needs. VS Code
+        // gives up on an extension host that isn't ready in 60 s
+        // (`localProcessExtensionHost.ts`) (docs/audit TR-16).
+        let (tx, rx) = std::sync::mpsc::channel();
+        thread::spawn(move || {
+            let mut reader = BufReader::new(stdout);
+            let mut line = String::new();
+            let read = reader.read_line(&mut line).map(|n| (n, line));
+            let _ = tx.send(read);
+        });
+        let (bytes_read, line) = match rx.recv_timeout(EXT_HOST_READY_TIMEOUT) {
+            Ok(read) => read.map_err(|e| {
+                format!("failed to read extension host port: {e}{}", recent_stderr())
+            })?,
+            Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "extension host did not report its port within {}s.{}",
+                    EXT_HOST_READY_TIMEOUT.as_secs(),
+                    recent_stderr()
+                ));
+            }
+        };
         if bytes_read == 0 {
             let _ = child.kill();
             return Err(format!(

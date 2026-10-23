@@ -42,11 +42,21 @@ pub struct SearchTextOptions {
     pub max_file_size: Option<u64>,
 }
 
+// scmCode: both searches walk the folder on the blocking pool. As plain `fn`s they
+// ran on the main thread and froze the window for a large search (docs/audit TR-16).
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value, clippy::unnecessary_wraps)]
-pub fn search_files(
+pub async fn search_files(
     root: String,
     pattern: String,
+    options: Option<SearchFileOptions>,
+) -> Result<Vec<FileMatch>, String> {
+    crate::scmcode_blocking::off_main(move || search_files_blocking(&root, &pattern, options)).await
+}
+
+#[allow(clippy::unnecessary_wraps)]
+fn search_files_blocking(
+    root: &str,
+    pattern: &str,
     options: Option<SearchFileOptions>,
 ) -> Result<Vec<FileMatch>, String> {
     let crate_opts = options.map(|o| CrateFileSearchOptions {
@@ -56,7 +66,7 @@ pub fn search_files(
         exclude: o.exclude,
     });
 
-    let matches = crate_search_files(Path::new(&root), &pattern, crate_opts.as_ref());
+    let matches = crate_search_files(Path::new(root), pattern, crate_opts.as_ref());
 
     Ok(matches
         .into_iter()
@@ -69,13 +79,21 @@ pub fn search_files(
 }
 
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn search_text(
+pub async fn search_text(
     root: String,
     query: String,
     options: Option<SearchTextOptions>,
 ) -> Result<Vec<TextMatch>, String> {
-    let opts_ref = options.as_ref();
+    crate::scmcode_blocking::off_main(move || search_text_blocking(&root, query, options.as_ref()))
+        .await
+}
+
+fn search_text_blocking(
+    root: &str,
+    query: String,
+    options: Option<&SearchTextOptions>,
+) -> Result<Vec<TextMatch>, String> {
+    let opts_ref = options;
     let query_len = query.len();
 
     let crate_query = CrateSearchQuery {
@@ -94,7 +112,7 @@ pub fn search_text(
         context_lines: None,
     };
 
-    let results = SearchEngine::search_with_options(Path::new(&root), &crate_query, &crate_opts)
+    let results = SearchEngine::search_with_options(Path::new(root), &crate_query, &crate_opts)
         .map_err(|e| e.to_string())?;
 
     Ok(results

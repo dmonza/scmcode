@@ -5,7 +5,7 @@ use std::fs;
 
 pub fn run(args: &Args, ctx: &ToolContext) -> Result<String> {
     let dir = resolve_path(ctx, get_str_or(args, "path", "."));
-    let depth = get_int(args, "depth", 3) as usize;
+    let depth = get_int(args, "depth", 3).clamp(0, 32) as usize;
     let mut out = Vec::new();
     build_tree(&dir, "", 0, depth, &mut out);
     Ok(out.join("\n"))

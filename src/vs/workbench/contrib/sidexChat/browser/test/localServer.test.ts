@@ -66,26 +66,19 @@ afterEach(() => {
 
 // --- URL construction & override handling -----------------------------------------------------
 
-test('serverWsUrl falls back to the built-in default with no override and no Tauri bridge', async () => {
+// scmCode: there is no override any more (docs/audit TR-04); the URL is always the
+// supervised server's.
+test('serverWsUrl falls back to the built-in default with no Tauri bridge', async () => {
 	const mod = await loadModule();
-	assert.equal(mod.serverWsUrl(undefined), 'ws://127.0.0.1:7433');
+	assert.equal(mod.serverWsUrl(), 'ws://127.0.0.1:7433');
 });
 
-test('serverWsUrl honours an explicit override, trimming whitespace and trailing slashes', async () => {
+test('serverWsUrl and serverHttpUrl follow the resolved endpoint', async () => {
+	installInvoke(async () => endpoint());
 	const mod = await loadModule();
-	assert.equal(mod.serverWsUrl('  ws://example.com:9000/// '), 'ws://example.com:9000');
-});
-
-test('serverWsUrl treats a blank override as absent', async () => {
-	const mod = await loadModule();
-	assert.equal(mod.serverWsUrl('   '), 'ws://127.0.0.1:7433');
-});
-
-test('serverHttpUrl mirrors serverWsUrl but with an http(s) scheme', async () => {
-	const mod = await loadModule();
-	assert.equal(mod.serverHttpUrl(undefined), 'http://127.0.0.1:7433');
-	assert.equal(mod.serverHttpUrl('wss://example.com:9000'), 'https://example.com:9000');
-	assert.equal(mod.serverHttpUrl('ws://example.com:9000'), 'http://example.com:9000');
+	await mod.resolveServerEndpoint();
+	assert.equal(mod.serverWsUrl(), 'ws://127.0.0.1:54321');
+	assert.equal(mod.serverHttpUrl(), 'http://127.0.0.1:54321');
 });
 
 // --- getServerEndpoint / isServerEndpointResolved ---------------------------------------------

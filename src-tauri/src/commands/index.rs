@@ -308,26 +308,50 @@ fn collect_files(root: &Path, options: &IndexOptions) -> Result<Vec<std::path::P
 /// Shared index store for Tauri state
 pub struct IndexStore {
     index: InvertedIndex,
+    /// scmCode: set while a build runs; a second request returns the current stats
+    /// instead of clearing the index under the first one (docs/audit TR-16).
+    building: std::sync::atomic::AtomicBool,
 }
 
 impl IndexStore {
     pub fn new(enable_trigram: bool) -> Self {
         Self {
             index: InvertedIndex::new(enable_trigram),
+            building: std::sync::atomic::AtomicBool::new(false),
         }
     }
 }
 
 /// Build index for a directory
+///
+/// scmCode: `async`, with the walk and the reads on the blocking pool. As a plain
+/// `fn` it ran on the main thread and froze the window for the whole build
+/// (docs/audit TR-16).
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn index_build(
+pub async fn index_build(
     state: State<'_, Arc<IndexStore>>,
     root: String,
     options: Option<IndexOptions>,
 ) -> Result<IndexStats, String> {
+    let store = Arc::clone(state.inner());
+    crate::scmcode_blocking::off_main(move || {
+        if store.building.swap(true, Ordering::AcqRel) {
+            return Ok(store.index.stats());
+        }
+        let result = build_index(&store, &root, options);
+        store.building.store(false, Ordering::Release);
+        result
+    })
+    .await
+}
+
+fn build_index(
+    state: &IndexStore,
+    root: &str,
+    options: Option<IndexOptions>,
+) -> Result<IndexStats, String> {
     let options = options.unwrap_or_default();
-    let root_path = Path::new(&root);
+    let root_path = Path::new(root);
 
     if !root_path.exists() {
         return Err(format!("Root path does not exist: {root}"));
@@ -335,7 +359,7 @@ pub fn index_build(
 
     // Clear existing index and set new root
     state.index.clear();
-    state.index.set_root(root.clone());
+    state.index.set_root(root.to_string());
 
     // Collect files to index
     let files = collect_files(root_path, &options)?;

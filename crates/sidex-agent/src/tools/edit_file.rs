@@ -1,3 +1,4 @@
+use super::file_ops::read_text;
 use super::{get_bool, get_str, resolve_path, Args};
 use crate::ToolContext;
 use anyhow::{bail, Result};
@@ -13,7 +14,7 @@ pub fn run(args: &Args, ctx: &ToolContext) -> Result<String> {
         bail!("old_string is required and cannot be empty");
     }
 
-    let content = fs::read_to_string(&path)?;
+    let content = read_text(&path)?;
     let count = content.matches(old_str).count();
 
     if count == 0 {
@@ -50,7 +51,7 @@ pub fn multi_edit(args: &Args, ctx: &ToolContext) -> Result<String> {
         bail!("edits must be a non-empty array");
     }
 
-    let mut content = fs::read_to_string(&path)?;
+    let mut content = read_text(&path)?;
     let mut applied = 0;
 
     for edit in &edits {
@@ -94,7 +95,7 @@ fn not_found_hint(content: &str, old: &str) -> String {
         let candidate: String = lines[..i].join("\n");
         if !candidate.is_empty() && candidate != old && content.contains(&candidate) {
             let shown = if candidate.len() > 160 {
-                format!("{}...", &candidate[..160])
+                format!("{}...", &candidate[..candidate.floor_char_boundary(160)])
             } else {
                 candidate
             };

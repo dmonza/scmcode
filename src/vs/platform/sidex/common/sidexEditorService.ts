@@ -48,11 +48,8 @@ export class SideXEditorBridge {
 		return invoke('search_text', { dir, query });
 	}
 
-	// --- Settings (sidex-settings) ---
-
-	async getSettings(section?: string): Promise<any> {
-		return invoke('settings_get', { section: section ?? null });
-	}
+	// scmCode: no settings here; the workbench's configuration service owns settings.json
+	// (docs/audit TR-08).
 
 	// --- Theme (sidex-theme) ---
 

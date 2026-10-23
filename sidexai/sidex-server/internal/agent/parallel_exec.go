@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -240,7 +239,7 @@ func createWorktreeForTask(repoDir string, task ParallelTask) (wtDir, branch str
 		return "", "", fmt.Errorf("mkdir: %w", err)
 	}
 
-	cmd := exec.Command("git", "worktree", "add", wtDir, "-b", branch)
+	cmd := tools.GitCommand("worktree", "add", wtDir, "-b", branch)
 	cmd.Dir = repoDir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -251,11 +250,11 @@ func createWorktreeForTask(repoDir string, task ParallelTask) (wtDir, branch str
 }
 
 func getWorktreeDiff(wtDir string) string {
-	cmd := exec.Command("git", "add", "-A")
+	cmd := tools.GitCommand("add", "-A")
 	cmd.Dir = wtDir
 	cmd.Run()
 
-	cmd = exec.Command("git", "diff", "--cached", "--stat")
+	cmd = tools.GitCommand("diff", "--cached", "--stat")
 	cmd.Dir = wtDir
 	out, err := cmd.Output()
 	if err != nil {
@@ -264,7 +263,7 @@ func getWorktreeDiff(wtDir string) string {
 
 	stat := strings.TrimSpace(string(out))
 
-	cmd = exec.Command("git", "diff", "--cached")
+	cmd = tools.GitCommand("diff", "--cached")
 	cmd.Dir = wtDir
 	fullDiff, _ := cmd.Output()
 
@@ -284,23 +283,23 @@ func mergeWorktrees(conn Conn, repoDir string, results []WaveResult) error {
 			}
 
 			// Commit any pending changes in the worktree
-			commitCmd := exec.Command("git", "add", "-A")
+			commitCmd := tools.GitCommand("add", "-A")
 			commitCmd.Dir = task.WorktreeDir
 			commitCmd.Run()
 
-			commitCmd = exec.Command("git", "commit", "-m",
+			commitCmd = tools.GitCommand("commit", "-m",
 				fmt.Sprintf("parallel task %s: %s", task.TaskID, task.Description))
 			commitCmd.Dir = task.WorktreeDir
 			commitCmd.CombinedOutput()
 
 			// Merge the branch back
-			mergeCmd := exec.Command("git", "merge", "--no-ff", task.Branch,
+			mergeCmd := tools.GitCommand("merge", "--no-ff", task.Branch,
 				"-m", fmt.Sprintf("Merge parallel task: %s", task.Description))
 			mergeCmd.Dir = repoDir
 			out, err := mergeCmd.CombinedOutput()
 			if err != nil {
 				// Abort the failed merge
-				abortCmd := exec.Command("git", "merge", "--abort")
+				abortCmd := tools.GitCommand("merge", "--abort")
 				abortCmd.Dir = repoDir
 				abortCmd.Run()
 
@@ -327,12 +326,12 @@ func mergeWorktrees(conn Conn, repoDir string, results []WaveResult) error {
 }
 
 func cleanupParallelWorktree(repoDir, wtDir, branch string) {
-	cmd := exec.Command("git", "worktree", "remove", "--force", wtDir)
+	cmd := tools.GitCommand("worktree", "remove", "--force", wtDir)
 	cmd.Dir = repoDir
 	cmd.CombinedOutput()
 	os.RemoveAll(wtDir)
 
-	cmd = exec.Command("git", "branch", "-d", branch)
+	cmd = tools.GitCommand("branch", "-d", branch)
 	cmd.Dir = repoDir
 	cmd.CombinedOutput()
 }

@@ -332,7 +332,7 @@ export class InlineEditController extends Disposable {
 	}
 
 	private _getServerUrl(): string {
-		return serverWsUrl(this._configService.getValue<string>('sidex.chat.serverUrl'));
+		return serverWsUrl(); // scmCode: no override (docs/audit TR-04)
 	}
 
 	override dispose(): void {

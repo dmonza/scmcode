@@ -54,10 +54,48 @@ export function LOCAL_TOOLS_SUPPORTED(): boolean {
 	return getTauriInvoke() !== null;
 }
 
+/**
+ * scmCode: the only tool names the agent server delegates to the client. A copy of
+ * `LocalExecTools` in `sidexai/sidex-server/internal/agent/types.go`; keep the two in sync.
+ * Any other name in a `tool_request` is refused here, so a server can't reach the rest of
+ * the Rust tool set (network fetches, deletes, process monitors) through this bridge
+ * (docs/audit TR-04).
+ */
+const LOCAL_EXEC_TOOLS: ReadonlySet<string> = new Set([
+	'cwd', 'read_file', 'write_file', 'edit_file',
+	'multi_edit', 'regex_replace', 'patch_file',
+	'list_dir', 'tree', 'search_files', 'glob',
+	'grep', 'batch_read', 'file_info',
+	'shell', 'run_background', 'shell_output',
+	'kill_shell', 'list_shells',
+	'git_status', 'git_log', 'git_commit',
+	'git_diff_file', 'diff',
+	'lsp_hover', 'lsp_definition',
+	'lsp_references', 'lsp_diagnostics',
+	'read_lints',
+	'context_index', 'context_search', 'context_status',
+	'enter_worktree', 'exit_worktree', 'list_worktrees',
+	'checkpoint', 'rollback',
+]);
+
 export class LocalToolExecutor {
 	constructor(private readonly getContext: () => ILocalToolContext) {}
 
+	/** Runs a `tool_request` from the agent server, if its tool is one the server delegates. */
 	async execute(req: ILocalToolRequest): Promise<ILocalToolResponse> {
+		if (!LOCAL_EXEC_TOOLS.has(req.name)) {
+			return {
+				type: 'tool_response',
+				tool_call_id: req.tool_call_id,
+				output: '',
+				error: `tool ${JSON.stringify(req.name)} is not run locally`,
+			};
+		}
+		return this.executeOwn(req);
+	}
+
+	/** Runs a request the workbench builds itself, with a fixed tool name. */
+	async executeOwn(req: ILocalToolRequest): Promise<ILocalToolResponse> {
 		const invoke = getTauriInvoke();
 		if (!invoke) {
 			return {

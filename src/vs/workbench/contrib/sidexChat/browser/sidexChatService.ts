@@ -18,6 +18,7 @@ import { resolveServerEndpoint, serverWsUrl, SERVER_RESTARTED_EVENT } from './lo
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IUpdateService } from '../../../../platform/update/common/update.js';
 import { IRecentEditTracker } from '../../sidexComplete/browser/recentEditTracker.js';
+import { scmcodeSettingsInvoke } from './settings/scmcodeChatSettings.js';
 
 export interface IWorkspaceContext {
 	activeFile: string | null;
@@ -202,7 +203,7 @@ export class SidexChatService extends Disposable implements ISidexChatService {
 	/** Set when the agent edits files during a turn; consumed on 'done'. */
 	private _indexDirty = false;
 	private _reindexTimer: ReturnType<typeof setTimeout> | undefined;
-	private _reindexInterval: ReturnType<typeof setInterval> | undefined;
+	private _autoReindex = false; // scmCode: set from sidex.indexing.autoIndex
 	private _contextIndexing = false;
 	private _cachedSessions: Array<{ id: string; title: string; date: string; messageCount: number; pinned?: boolean; archived?: boolean }> = [];
 	private _dbSessionCreated = false;
@@ -366,9 +367,8 @@ export class SidexChatService extends Disposable implements ISidexChatService {
 	}
 
 	private get _serverUrl(): string {
-		// Defaults to the loopback server the app supervises; an explicit
-		// setting wins so a user can point at their own instance.
-		return serverWsUrl(this.configurationService.getValue<string>('sidex.chat.serverUrl'));
+		// scmCode: always the loopback server the app supervises (docs/audit TR-04).
+		return serverWsUrl();
 	}
 
 	/**
@@ -432,7 +432,7 @@ export class SidexChatService extends Disposable implements ISidexChatService {
 			return;
 		}
 		const ctx = this._gatherWorkspaceContext();
-		this._localExecutor.execute({
+		this._localExecutor.executeOwn({ // scmCode: workbench-built, not from the server
 			type: 'tool_request',
 			tool_call_id: `git-status-${Date.now()}`,
 			name: 'git_status',
@@ -658,7 +658,7 @@ export class SidexChatService extends Disposable implements ISidexChatService {
 			const searchBudget = codebaseMatch ? 6000 : 4000;
 
 			try {
-				const result = await this._localExecutor.execute({
+				const result = await this._localExecutor.executeOwn({ // scmCode: workbench-built
 					type: 'tool_request',
 					tool_call_id: `ctx-search-${Date.now()}`,
 					name: 'context_search',
@@ -1848,7 +1848,6 @@ ${prompt}`,
 
 	override dispose(): void {
 		if (this._reindexTimer) { clearTimeout(this._reindexTimer); }
-		if (this._reindexInterval) { clearInterval(this._reindexInterval); }
 		this.disconnect();
 		super.dispose();
 	}
@@ -1865,7 +1864,7 @@ ${prompt}`,
 		}
 		this._contextIndexing = true;
 
-		this._localExecutor.execute({
+		this._localExecutor.executeOwn({ // scmCode: workbench-built, not from the server
 			type: 'tool_request',
 			tool_call_id: `ctx-index-${Date.now()}`,
 			name: 'context_index',
@@ -1887,7 +1886,7 @@ ${prompt}`,
 	}
 
 	private _triggerAutoIndex(): void {
-		const invoke = SidexChatService._getTauriInvoke();
+		const invoke = scmcodeSettingsInvoke(SidexChatService._getTauriInvoke()); // scmCode: TR-08
 		const wsPath = this.workspacePath;
 		if (!invoke || !wsPath || wsPath === '.') { return; }
 
@@ -1901,13 +1900,11 @@ ${prompt}`,
 				detail: { status: 'indexing', path: wsPath }
 			}));
 
-			invoke('index_build', { root: wsPath }).then(() => {
-				if (!autoIndexOff) {
-					// Keep the index fresh: periodic incremental
-					// re-sync (Merkle diff makes unchanged syncs ~free).
-					this._startReindexInterval();
-				}
-			}).catch(err => {
+			// scmCode: no periodic full rebuild. It re-read every file every 5 minutes only
+			// to refresh the file counts shown in Settings (`index_stats`); the index is
+			// rebuilt after agent edits instead, while auto-index is on (docs/audit TR-16).
+			this._autoReindex = !autoIndexOff;
+			invoke('index_build', { root: wsPath }).catch(err => {
 				console.error('[sidex-index] index build failed:', err);
 				window.dispatchEvent(new CustomEvent('sidex-indexing-status', {
 					detail: { status: 'error', path: wsPath, error: err }
@@ -1921,17 +1918,12 @@ ${prompt}`,
 
 	/** Debounced incremental re-index (after agent edits). */
 	private _scheduleReindex(): void {
+		if (!this._autoReindex) { return; } // scmCode: honours sidex.indexing.autoIndex
 		if (this._reindexTimer) { clearTimeout(this._reindexTimer); }
 		this._reindexTimer = setTimeout(() => {
 			this._reindexTimer = undefined;
 			this._runReindex();
 		}, 15_000);
-	}
-
-	/** Periodic catch-all re-index for edits made outside the agent. */
-	private _startReindexInterval(): void {
-		if (this._reindexInterval) { return; }
-		this._reindexInterval = setInterval(() => this._runReindex(), 5 * 60_000);
 	}
 
 	private _runReindex(): void {
@@ -1947,7 +1939,7 @@ ${prompt}`,
 		if (!LOCAL_TOOLS_SUPPORTED() || !this._contextIndexed) {
 			return;
 		}
-		this._localExecutor.execute({
+		this._localExecutor.executeOwn({ // scmCode: workbench-built, not from the server
 			type: 'tool_request',
 			tool_call_id: `ctx-watch-${Date.now()}`,
 			name: 'context_watch',
@@ -2006,7 +1998,8 @@ ${prompt}`,
 		}
 
 		const httpUrl = this._serverUrl.replace(/^ws/, 'http');
-		const tauriInvoke = (globalThis as { __TAURI_INTERNALS__?: { invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> } }).__TAURI_INTERNALS__?.invoke;
+		// scmCode: settings_get goes to the configuration service (TR-08).
+		const tauriInvoke = scmcodeSettingsInvoke((globalThis as { __TAURI_INTERNALS__?: { invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> } }).__TAURI_INTERNALS__?.invoke);
 
 		Promise.all([
 			fetch(httpUrl + '/v1/models').then(r => r.json()).catch(() => []),

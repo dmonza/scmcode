@@ -43,7 +43,6 @@ import { FileOperation, IFileService } from '../../files/common/files.js';
 import { ILogService } from '../../log/common/log.js';
 import { Registry } from '../../registry/common/platform.js';
 import { Workspace } from '../../workspace/common/workspace.js';
-import { invoke } from '@tauri-apps/api/core';
 
 function freeze<T>(data: T): T {
 	return Object.isFrozen(data) ? data : objects.deepFreeze(data);
@@ -618,20 +617,9 @@ export class UserSettings extends Disposable {
 	}
 
 	async loadConfiguration(): Promise<ConfigurationModel> {
-		// Bridge to Rust sidex-settings: prefer the user-scope view from the
-		// Rust store so the in-memory Rust state and the TS configuration
-		// model stay consistent. Falls back to direct file read if the Tauri
-		// command is unavailable (e.g. tests, isolated unit contexts).
-		try {
-			const userJson = await invoke<unknown>('settings_get', { section: null, scope: 'user' });
-			const content = userJson && typeof userJson === 'object' ? JSON.stringify(userJson) : '{}';
-			this.parser.parse(content, this.parseOptions);
-			return this.parser.configurationModel;
-		} catch (tauriError) {
-			this.logService.trace(
-				`UserSettings: settings_get bridge failed for ${this.userSettingsResource.toString()}, falling back to file read: ${tauriError}`
-			);
-		}
+		// scmCode: read the file, as upstream does. SideX read a copy kept by the Rust
+		// backend (`settings_get`), loaded once at startup from another directory on
+		// Windows and macOS, so hand edits were ignored (docs/audit TR-08).
 		try {
 			const content = await this.fileService.readFile(this.userSettingsResource);
 			this.parser.parse(content.value.toString() || '{}', this.parseOptions);

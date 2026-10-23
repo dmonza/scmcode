@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::commands::secrets::SecretsStore;
+use crate::scmcode_blocking::off_main;
 
 /// Where a resolved credential came from. Surfaced in the UI so the user can
 /// see *why* a provider is working without revealing the key itself.
@@ -440,16 +441,26 @@ fn resolve_ignoring_enabled(store: &SecretsStore, id: &str) -> Option<ResolvedPr
 }
 
 /// Status of every known provider, for the Settings UI. Never returns keys.
+///
+/// scmCode: this and the other provider commands below read or write the OS
+/// keyring (D-Bus on Linux), which can block, so they run on the blocking pool
+/// instead of the main thread (docs/audit TR-16).
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn providers_status(store: State<'_, Arc<SecretsStore>>) -> Vec<ProviderStatus> {
+pub async fn providers_status(
+    store: State<'_, Arc<SecretsStore>>,
+) -> Result<Vec<ProviderStatus>, String> {
+    let store = Arc::clone(store.inner());
+    off_main(move || Ok(provider_statuses(&store))).await
+}
+
+fn provider_statuses(store: &SecretsStore) -> Vec<ProviderStatus> {
     PROVIDERS
         .iter()
         .map(|info| {
             // Deliberately not `resolve_inner`: the toggle needs to keep
             // showing what the provider would resolve to while it's off, so
             // flipping it back on doesn't come with a surprise.
-            let resolved = resolve_ignoring_enabled(&store, info.id);
+            let resolved = resolve_ignoring_enabled(store, info.id);
             let env_var = resolved.as_ref().and_then(|r| {
                 (r.source == SOURCE_ENV)
                     .then(|| {
@@ -470,7 +481,7 @@ pub fn providers_status(store: State<'_, Arc<SecretsStore>>) -> Vec<ProviderStat
                 source: resolved.map(|r| r.source),
                 keyless: info.keyless,
                 env_var,
-                enabled: !provider_disabled(&store, info.id),
+                enabled: !provider_disabled(store, info.id),
             }
         })
         .collect()
@@ -493,30 +504,40 @@ pub fn resolve_all(store: &SecretsStore) -> Vec<ResolvedProvider> {
 /// Save a provider credential. An empty `api_key` clears it, which lets the
 /// next source in the precedence chain take over.
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn providers_save(
+pub async fn providers_save(
     store: State<'_, Arc<SecretsStore>>,
     provider: String,
     api_key: Option<String>,
     base_url: Option<String>,
 ) -> Result<(), String> {
+    let store = Arc::clone(store.inner());
+    off_main(move || save_provider(&store, &provider, api_key.as_deref(), base_url.as_deref()))
+        .await
+}
+
+fn save_provider(
+    store: &SecretsStore,
+    provider: &str,
+    api_key: Option<&str>,
+    base_url: Option<&str>,
+) -> Result<(), String> {
     if provider.trim().is_empty() {
         return Err("provider id is required".to_string());
     }
 
-    match api_key.as_deref().map(str::trim) {
+    match api_key.map(str::trim) {
         Some("") | None => {
-            let _ = store.inner.delete(&api_key_slot(&provider));
+            let _ = store.inner.delete(&api_key_slot(provider));
         }
         Some(key) => store
             .inner
-            .set(&api_key_slot(&provider), key)
+            .set(&api_key_slot(provider), key)
             .map_err(|e| e.to_string())?,
     }
 
-    match base_url.as_deref().map(str::trim) {
+    match base_url.map(str::trim) {
         Some("") | None => {
-            let _ = store.inner.delete_plain(&base_url_slot(&provider));
+            let _ = store.inner.delete_plain(&base_url_slot(provider));
         }
         Some(url) => {
             if !url.starts_with("http://") && !url.starts_with("https://") {
@@ -524,7 +545,7 @@ pub fn providers_save(
             }
             store
                 .inner
-                .set_plain(&base_url_slot(&provider), url.trim_end_matches('/'))
+                .set_plain(&base_url_slot(provider), url.trim_end_matches('/'))
                 .map_err(|e| e.to_string())?;
         }
     }
@@ -545,13 +566,16 @@ fn delete_provider(store: &SecretsStore, provider: &str) {
 
 /// Forget everything stored for a provider, including its off switch.
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn providers_delete(
+pub async fn providers_delete(
     store: State<'_, Arc<SecretsStore>>,
     provider: String,
 ) -> Result<(), String> {
-    delete_provider(&store, &provider);
-    Ok(())
+    let store = Arc::clone(store.inner());
+    off_main(move || {
+        delete_provider(&store, &provider);
+        Ok(())
+    })
+    .await
 }
 
 /// True when the user has explicitly switched a provider off. Distinct from
@@ -594,13 +618,13 @@ fn set_provider_enabled(store: &SecretsStore, provider: &str, enabled: bool) -> 
 /// credential source, so a disabled provider is invisible to `server_env`
 /// regardless of what credentials it has.
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn providers_set_enabled(
+pub async fn providers_set_enabled(
     store: State<'_, Arc<SecretsStore>>,
     provider: String,
     enabled: bool,
 ) -> Result<(), String> {
-    set_provider_enabled(&store, &provider, enabled)
+    let store = Arc::clone(store.inner());
+    off_main(move || set_provider_enabled(&store, &provider, enabled)).await
 }
 
 // ---------------------------------------------------------------------------

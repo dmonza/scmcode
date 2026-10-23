@@ -66,3 +66,8 @@ jobs:
 
       - name: Run tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      # scmCode: crates whose tests pass on every OS. Crates with known Windows
+      # failures (docs/issues/ISSUE-0003-*) join this list once they are fixed.
+      - name: Run crate tests
+        run: cargo test -p sidex-agent -p sidex-git -p sidex-settings

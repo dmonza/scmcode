@@ -1,12 +1,15 @@
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use serde::Serialize;
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::scmcode_blocking::WriteQueue;
+
 pub struct PtyHandle {
-    writer: Box<dyn Write + Send>,
+    // scmCode: writes go through a per-terminal queue (docs/audit TR-16).
+    writer: WriteQueue,
     master: Box<dyn MasterPty + Send>,
     child: Box<dyn portable_pty::Child + Send>,
 }
@@ -267,7 +270,7 @@ pub fn terminal_spawn(
         terminals.insert(
             id,
             PtyHandle {
-                writer,
+                writer: WriteQueue::spawn(writer),
                 master: pair.master,
                 child,
             },
@@ -336,22 +339,19 @@ pub fn terminal_write(
     terminal_id: u32,
     data: String,
 ) -> Result<(), String> {
-    let mut terminals = state.terminals.lock().map_err(|e| e.to_string())?;
+    // scmCode: queue the bytes for the terminal's writer thread instead of writing
+    // here. A blocking `write_all` while holding the terminals lock froze the main
+    // thread (and `terminal_kill`, which needs the lock) whenever the program in the
+    // terminal stopped reading, e.g. a large paste (docs/audit TR-16).
+    let terminals = state.terminals.lock().map_err(|e| e.to_string())?;
     let handle = terminals
-        .get_mut(&terminal_id)
+        .get(&terminal_id)
         .ok_or_else(|| format!("Terminal {terminal_id} not found"))?;
 
     handle
         .writer
-        .write_all(data.as_bytes())
-        .map_err(|e| format!("Failed to write to terminal {terminal_id}: {e}"))?;
-
-    handle
-        .writer
-        .flush()
-        .map_err(|e| format!("Failed to flush terminal {terminal_id}: {e}"))?;
-
-    Ok(())
+        .send(data.into_bytes())
+        .map_err(|e| format!("Failed to write to terminal {terminal_id}: {e}"))
 }
 
 #[tauri::command]

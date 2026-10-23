@@ -4,21 +4,32 @@ use anyhow::{bail, Result};
 use std::fs;
 use std::path::Path;
 
+/// Largest file the text tools read into memory.
+pub(crate) const MAX_READ_BYTES: u64 = 10 * 1024 * 1024;
+
+/// scmCode: read a text file after checking its size, so a request for a huge
+/// file fails with a clear error instead of exhausting memory.
+pub(crate) fn read_text(path: &str) -> Result<String> {
+    let size = fs::metadata(path)?.len();
+    if size > MAX_READ_BYTES {
+        bail!(
+            "{path} is {size} bytes, over the {} MiB limit for reading a file; use grep or read a smaller file",
+            MAX_READ_BYTES / (1024 * 1024)
+        );
+    }
+    Ok(fs::read_to_string(path)?)
+}
+
 pub fn read_file(args: &Args, ctx: &ToolContext) -> Result<String> {
     let path = resolve_path(ctx, get_str(args, "path"));
 
-    // Check predictive cache first
-    let content = if let Some(cached) = super::context::cache_get(&path) {
-        cached
-    } else {
-        fs::read_to_string(&path)?
-    };
+    // scmCode: always read from disk. The predictive cache returned stale
+    // content after the file changed (docs/audit TR-15).
+    let content = read_text(&path)?;
 
-    // Record access and trigger background pre-fetch for predicted files
-    super::context::notify_file_read(&path, &content);
-
-    let offset = get_int(args, "offset", 0) as usize;
-    let limit = get_int(args, "limit", 0) as usize;
+    // Negative values mean "unset", like 0.
+    let offset = usize::try_from(get_int(args, "offset", 0)).unwrap_or(0);
+    let limit = usize::try_from(get_int(args, "limit", 0)).unwrap_or(0);
     let lines: Vec<&str> = content.lines().collect();
 
     let start = if offset > 0 {
@@ -27,7 +38,7 @@ pub fn read_file(args: &Args, ctx: &ToolContext) -> Result<String> {
         0
     };
     let end = if limit > 0 {
-        (start + limit).min(lines.len())
+        start.saturating_add(limit).min(lines.len())
     } else {
         lines.len()
     };
@@ -111,14 +122,13 @@ pub fn batch_read(args: &Args, ctx: &ToolContext) -> Result<String> {
     for p in paths {
         let abs = resolve_path(ctx, p);
         use std::fmt::Write;
-        let read_result = super::context::cache_get(&abs)
-            .map(Ok)
-            .unwrap_or_else(|| fs::read_to_string(&abs));
-        match read_result {
+        match read_text(&abs) {
             Ok(content) => {
-                super::context::notify_file_read(&abs, &content);
                 let truncated = if content.len() > 10_000 {
-                    format!("{}...(truncated)", &content[..10_000])
+                    format!(
+                        "{}...(truncated)",
+                        &content[..content.floor_char_boundary(10_000)]
+                    )
                 } else {
                     content
                 };

@@ -1,15 +1,18 @@
 use serde::Serialize;
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::Mutex as AsyncMutex;
 
+use crate::scmcode_blocking::WriteQueue;
+
 struct DebugAdapterHandle {
     child: Child,
-    stdin: Option<std::process::ChildStdin>,
+    // scmCode: writes go through a per-adapter queue (docs/audit TR-16).
+    stdin: Option<WriteQueue>,
 }
 
 pub struct DebugAdapterStore {
@@ -126,7 +129,7 @@ pub fn debug_spawn_adapter(
             id,
             DebugAdapterHandle {
                 child,
-                stdin: Some(stdin),
+                stdin: Some(WriteQueue::spawn(Box::new(stdin))),
             },
         );
     }
@@ -223,25 +226,21 @@ pub fn debug_send(
     adapter_id: u32,
     data: String,
 ) -> Result<(), String> {
-    let mut adapters = state.adapters.lock().map_err(|e| e.to_string())?;
+    // scmCode: queue the bytes instead of a blocking write on the main thread while
+    // holding the adapters lock (docs/audit TR-16).
+    let adapters = state.adapters.lock().map_err(|e| e.to_string())?;
     let handle = adapters
-        .get_mut(&adapter_id)
+        .get(&adapter_id)
         .ok_or_else(|| format!("Debug adapter {adapter_id} not found"))?;
 
     let stdin = handle
         .stdin
-        .as_mut()
+        .as_ref()
         .ok_or_else(|| format!("Debug adapter {adapter_id} stdin not available"))?;
 
     stdin
-        .write_all(data.as_bytes())
-        .map_err(|e| format!("Failed to write to debug adapter {adapter_id}: {e}"))?;
-
-    stdin
-        .flush()
-        .map_err(|e| format!("Failed to flush debug adapter {adapter_id}: {e}"))?;
-
-    Ok(())
+        .send(data.into_bytes())
+        .map_err(|e| format!("Failed to write to debug adapter {adapter_id}: {e}"))
 }
 
 /// Kill a running debug adapter process.

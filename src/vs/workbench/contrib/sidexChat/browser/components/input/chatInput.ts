@@ -7,6 +7,7 @@ import { MentionPopup } from './mentionPopup.js';
 import { MentionResolver, MentionItem } from '../../context/mentionResolver.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { ISidexChatService } from '../../sidexChatService.js';
+import { scmcodeSettingsInvoke } from '../../settings/scmcodeChatSettings.js';
 
 export type AgentMode = 'agent' | 'plan' | 'ask';
 
@@ -789,7 +790,7 @@ export class ChatInput extends Component {
 		});
 
 		// Fetch general settings to initialize defaultAgent mode
-		const tInvoke = (globalThis as any).__TAURI_INTERNALS__?.invoke;
+		const tInvoke = scmcodeSettingsInvoke((globalThis as any).__TAURI_INTERNALS__?.invoke); // scmCode: TR-08
 		if (tInvoke) {
 			tInvoke('settings_get', { section: 'sidex.general' })
 				.then(raw => {

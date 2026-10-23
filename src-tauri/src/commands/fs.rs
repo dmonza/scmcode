@@ -46,11 +46,15 @@ pub fn read_file(path: String) -> Result<String, String> {
     ws::read_file(Path::new(&path)).map_err(|e| io_err(&path, &e))
 }
 
-#[allow(clippy::needless_pass_by_value)]
+// scmCode: the byte variants run on the blocking pool; as plain `fn`s a large file
+// was read or written on the main thread (docs/audit TR-16).
 #[tauri::command]
-pub fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
-    validate_path(&path)?;
-    ws::read_file_bytes(Path::new(&path)).map_err(|e| io_err(&path, &e))
+pub async fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
+    crate::scmcode_blocking::off_main(move || {
+        validate_path(&path)?;
+        ws::read_file_bytes(Path::new(&path)).map_err(|e| io_err(&path, &e))
+    })
+    .await
 }
 
 #[allow(clippy::needless_pass_by_value)]
@@ -60,11 +64,13 @@ pub fn write_file(path: String, content: String) -> Result<(), String> {
     ws::write_file(Path::new(&path), &content).map_err(|e| io_err(&path, &e))
 }
 
-#[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
-pub fn write_file_bytes(path: String, content: Vec<u8>) -> Result<(), String> {
-    validate_path(&path)?;
-    ws::write_file_bytes(Path::new(&path), &content).map_err(|e| io_err(&path, &e))
+pub async fn write_file_bytes(path: String, content: Vec<u8>) -> Result<(), String> {
+    crate::scmcode_blocking::off_main(move || {
+        validate_path(&path)?;
+        ws::write_file_bytes(Path::new(&path), &content).map_err(|e| io_err(&path, &e))
+    })
+    .await
 }
 
 #[allow(clippy::needless_pass_by_value)]

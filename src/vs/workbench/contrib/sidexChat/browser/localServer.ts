@@ -174,16 +174,19 @@ export async function restartServer(): Promise<IServerEndpoint> {
 }
 
 /**
- * Resolve the WebSocket origin, honouring an explicit `sidex.chat.serverUrl`
- * override so a user can point the app at a server they run themselves.
+ * The WebSocket origin of the agent server the app supervises.
+ *
+ * scmCode: the `sidex.chat.serverUrl` / `sidex.complete.serverUrl` overrides are gone.
+ * Settings also come from a workspace's `.vscode/settings.json`, so a cloned repository
+ * could point chat, completions and the tool results they carry at a host of its choosing
+ * (docs/audit TR-04). The app always runs its own server on loopback, so there is nothing
+ * to override (minimalism).
  */
-export function serverWsUrl(configured: string | undefined): string {
-	const trimmed = configured?.trim();
-	return trimmed ? trimmed.replace(/\/+$/, '') : cached.wsUrl;
+export function serverWsUrl(): string {
+	return cached.wsUrl;
 }
 
 /** HTTP form of {@link serverWsUrl}, for plain request/response endpoints. */
-export function serverHttpUrl(configured: string | undefined): string {
-	const ws = serverWsUrl(configured);
-	return ws.replace(/^ws/, 'http');
+export function serverHttpUrl(): string {
+	return serverWsUrl().replace(/^ws/, 'http');
 }

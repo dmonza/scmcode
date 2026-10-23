@@ -19,7 +19,6 @@ import '../platform/sidex/browser/sidexLspService.js';
 import '../platform/sidex/browser/sidexDapService.js';
 import '../platform/sidex/browser/sidexRemoteService.js';
 import '../platform/sidex/common/sidexThemeService.js';
-import '../platform/sidex/common/sidexSettingsService.js';
 import '../platform/sidex/common/sidexKeymapService.js';
 
 import './api/browser/extensionHost.contribution.js';

@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -53,14 +52,14 @@ func worktreeID() string {
 }
 
 func isGitRepo(dir string) bool {
-	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+	cmd := GitCommand("rev-parse", "--is-inside-work-tree")
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	return err == nil && strings.TrimSpace(string(out)) == "true"
 }
 
 func gitCurrentBranch(dir string) string {
-	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	cmd := GitCommand("rev-parse", "--abbrev-ref", "HEAD")
 	cmd.Dir = dir
 	out, _ := cmd.Output()
 	return strings.TrimSpace(string(out))
@@ -87,7 +86,7 @@ func (r *Registry) enterWorktree(args map[string]interface{}) ExecutionResult {
 		return ExecutionResult{Error: fmt.Sprintf("cannot create worktree parent dir: %s", err)}
 	}
 
-	cmd := exec.Command("git", "worktree", "add", wtDir, "-b", branch)
+	cmd := GitCommand("worktree", "add", wtDir, "-b", branch)
 	cmd.Dir = r.cwd
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -127,7 +126,7 @@ func (r *Registry) exitWorktree(args map[string]interface{}) ExecutionResult {
 	if action == "merge" {
 		origBranch := gitCurrentBranch(wt.OriginalCwd)
 
-		cmd := exec.Command("git", "merge", "--no-ff", wt.Branch, "-m", fmt.Sprintf("Merge worktree branch %s", wt.Branch))
+		cmd := GitCommand("merge", "--no-ff", wt.Branch, "-m", fmt.Sprintf("Merge worktree branch %s", wt.Branch))
 		cmd.Dir = wt.OriginalCwd
 		out, err := cmd.CombinedOutput()
 		if err != nil {
@@ -144,7 +143,7 @@ func (r *Registry) exitWorktree(args map[string]interface{}) ExecutionResult {
 	cleanupWorktree(wt.OriginalCwd, wt.WorktreeCwd)
 
 	if action == "discard" {
-		cmd := exec.Command("git", "branch", "-D", wt.Branch)
+		cmd := GitCommand("branch", "-D", wt.Branch)
 		cmd.Dir = wt.OriginalCwd
 		out, _ := cmd.CombinedOutput()
 		result.WriteString(fmt.Sprintf("Deleted branch %s.\n%s", wt.Branch, out))
@@ -155,7 +154,7 @@ func (r *Registry) exitWorktree(args map[string]interface{}) ExecutionResult {
 }
 
 func cleanupWorktree(repoDir, wtDir string) {
-	cmd := exec.Command("git", "worktree", "remove", "--force", wtDir)
+	cmd := GitCommand("worktree", "remove", "--force", wtDir)
 	cmd.Dir = repoDir
 	cmd.CombinedOutput()
 	os.RemoveAll(wtDir)
@@ -171,7 +170,7 @@ func (r *Registry) listWorktrees(args map[string]interface{}) ExecutionResult {
 		return ExecutionResult{Error: "not inside a git repository"}
 	}
 
-	cmd := exec.Command("git", "worktree", "list")
+	cmd := GitCommand("worktree", "list")
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	if err != nil {

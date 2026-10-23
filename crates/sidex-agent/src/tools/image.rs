@@ -10,7 +10,8 @@ const MAX_IMAGE_SIZE: usize = 10 * 1024 * 1024; // 10MB
 
 pub fn read(args: &Args, ctx: &ToolContext) -> Result<String> {
     let path = resolve_path(ctx, get_str(args, "path"));
-    let max_size = get_int(args, "max_size", MAX_IMAGE_SIZE as i64) as usize;
+    let max_size =
+        get_int(args, "max_size", MAX_IMAGE_SIZE as i64).clamp(0, MAX_IMAGE_SIZE as i64) as usize;
 
     let metadata = fs::metadata(&path)?;
     if metadata.len() as usize > max_size {

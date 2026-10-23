@@ -1,7 +1,5 @@
 package tools
 
-import "os/exec"
-
 func init_diff(r *Registry) {
 	r.tools["diff"] = Tool{
 		Name:        "diff",
@@ -17,7 +15,7 @@ func init_diff(r *Registry) {
 
 func (r *Registry) diff(args map[string]interface{}) ExecutionResult {
 	path := r.resolvePath(strOr(args, "path", "."))
-	cmd := exec.Command("git", "diff", "HEAD")
+	cmd := GitCommand("diff", "HEAD")
 	cmd.Dir = path
 	out, _ := cmd.CombinedOutput()
 	if len(out) == 0 {

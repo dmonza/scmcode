@@ -29,12 +29,11 @@ use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use serde_json::Value;
-use sidex_settings::Settings;
+use sidex_settings::parse_jsonc;
 use tauri::{AppHandle, Manager};
 
 use crate::commands::providers;
 use crate::commands::secrets::SecretsStore;
-use crate::commands::settings::SettingsStore;
 
 /// User setting that turns the AI features on. Off by default.
 const AI_ENABLED_SETTING: &str = "sidex.ai.enabled";
@@ -585,24 +584,33 @@ fn start(app: &AppHandle, server: &Arc<LocalServer>) {
     std::thread::spawn(move || run_supervised(&server, &bin, &provider_env, port, generation));
 }
 
-/// Whether the user has turned AI on. Only the user layer counts, so a
-/// workspace's settings can't start the server behind the user's back; a
-/// missing or non-boolean value means off.
-fn ai_enabled(settings: &Settings) -> bool {
-    settings
-        .user_layer()
-        .get(AI_ENABLED_SETTING)
-        .and_then(Value::as_bool)
-        .unwrap_or(false)
+/// Whether the user has turned AI on, given the text of the user's
+/// `settings.json` (JSONC). Only that file counts, so a workspace's settings
+/// can't start the server behind the user's back; a missing or non-boolean
+/// value, or a file that doesn't parse, means off.
+fn ai_enabled(user_settings: &str) -> bool {
+    match parse_jsonc(user_settings) {
+        Ok(v) => v
+            .get(AI_ENABLED_SETTING)
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        Err(e) => {
+            log::warn!("[sidex-server] user settings.json doesn't parse, AI treated as off: {e}");
+            false
+        }
+    }
 }
 
+/// scmCode: read the workbench's own `settings.json` each time (the same file
+/// `resolve_user_data_dir` gives the workbench), so a hand edit or a change in the
+/// UI applies at the next start or restart. SideX read a copy loaded once at
+/// startup, from another directory on Windows and macOS (docs/audit TR-08).
 fn ai_enabled_in(app: &AppHandle) -> bool {
-    let store = app.state::<Arc<SettingsStore>>();
-    let settings = store
-        .inner
-        .read()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
-    ai_enabled(&settings)
+    let Ok(dir) = crate::commands::os::resolve_user_data_dir(app) else {
+        return false;
+    };
+    std::fs::read_to_string(dir.join("User").join("settings.json"))
+        .is_ok_and(|text| ai_enabled(&text))
 }
 
 /// Run `start` only while AI is on; otherwise record why there is no server.
@@ -627,16 +635,22 @@ pub fn initialize(app: &AppHandle) {
 /// Stop the server and start it again if AI is on. Called when provider
 /// credentials change, and when the AI setting is toggled, so turning AI off
 /// stops the server and turning it on starts it.
+///
+/// scmCode: `async`, with the shutdown, keyring reads and spawn on the blocking pool;
+/// as a plain `fn` it ran them on the main thread (docs/audit TR-16).
 #[tauri::command]
-pub fn server_restart(app: AppHandle) -> Result<ServerEndpoint, String> {
-    let server = app
-        .try_state::<Arc<LocalServer>>()
-        .ok_or("local server is not initialized")?
-        .inner()
-        .clone();
-    server.shutdown();
-    start_if_enabled(ai_enabled_in(&app), &server, || start(&app, &server));
-    Ok(server.endpoint())
+pub async fn server_restart(app: AppHandle) -> Result<ServerEndpoint, String> {
+    crate::scmcode_blocking::off_main(move || {
+        let server = app
+            .try_state::<Arc<LocalServer>>()
+            .ok_or("local server is not initialized")?
+            .inner()
+            .clone();
+        server.shutdown();
+        start_if_enabled(ai_enabled_in(&app), &server, || start(&app, &server));
+        Ok(server.endpoint())
+    })
+    .await
 }
 
 #[cfg(test)]
@@ -845,24 +859,19 @@ mod tests {
     /// truthy.
     #[test]
     fn ai_is_off_unless_the_user_turns_it_on() {
-        let mut settings = Settings::new();
-        assert!(!ai_enabled(&settings), "a clean profile has AI off");
-
-        settings.set(AI_ENABLED_SETTING, Value::Bool(false));
-        assert!(!ai_enabled(&settings));
-
-        settings.set(AI_ENABLED_SETTING, Value::String("true".into()));
-        assert!(!ai_enabled(&settings), "only a real boolean counts");
-
-        settings.set(AI_ENABLED_SETTING, Value::Bool(true));
-        assert!(ai_enabled(&settings));
-
-        let mut from_workspace = Settings::new();
-        from_workspace.set_workspace(AI_ENABLED_SETTING, Value::Bool(true));
+        assert!(!ai_enabled("{}"), "a clean profile has AI off");
+        assert!(!ai_enabled(r#"{ "sidex.ai.enabled": false }"#));
         assert!(
-            !ai_enabled(&from_workspace),
-            "a workspace's settings must not start the server"
+            !ai_enabled(r#"{ "sidex.ai.enabled": "true" }"#),
+            "only a real boolean counts"
         );
+        assert!(!ai_enabled("{ not json"), "a broken file means off");
+        assert!(ai_enabled(r#"{ "sidex.ai.enabled": true }"#));
+        // scmCode: the file is the user's: comments, a BOM and non-ASCII text are
+        // normal in it (docs/audit TR-08).
+        assert!(ai_enabled(
+            "\u{feff}{\n  // turned on by hand\n  \"files.x\": \"C:/Users/José/año\",\n  \"sidex.ai.enabled\": true,\n}"
+        ));
     }
 
     /// With AI off the supervisor must not spawn anything, and the endpoint

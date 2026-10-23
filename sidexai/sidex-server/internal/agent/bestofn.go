@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -291,11 +290,11 @@ func captureWorktreeDiff(wtDir string) string {
 	if wtDir == "" {
 		return ""
 	}
-	cmd := exec.Command("git", "diff", "HEAD")
+	cmd := tools.GitCommand("diff", "HEAD")
 	cmd.Dir = wtDir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		staged := exec.Command("git", "diff", "--cached")
+		staged := tools.GitCommand("diff", "--cached")
 		staged.Dir = wtDir
 		sOut, _ := staged.CombinedOutput()
 		return string(sOut)

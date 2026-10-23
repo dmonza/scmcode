@@ -10,6 +10,8 @@ use std::sync::Arc;
 use sidex_auth::SecretStorage;
 use tauri::{AppHandle, Manager};
 
+use crate::scmcode_blocking::off_main;
+
 pub struct SecretsStore {
     pub(crate) inner: SecretStorage,
 }
@@ -33,36 +35,40 @@ pub fn initialize(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+// scmCode: the secret commands reach the OS keyring (D-Bus on Linux), which can
+// block; they run on the blocking pool instead of the main thread (docs/audit TR-16).
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn secret_get(
+pub async fn secret_get(
     store: tauri::State<'_, Arc<SecretsStore>>,
     key: String,
 ) -> Result<Option<String>, String> {
-    store.inner.get(&key).map_err(|e| e.to_string())
+    let store = Arc::clone(store.inner());
+    off_main(move || store.inner.get(&key).map_err(|e| e.to_string())).await
 }
 
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn secret_set(
+pub async fn secret_set(
     store: tauri::State<'_, Arc<SecretsStore>>,
     key: String,
     value: String,
 ) -> Result<(), String> {
-    store.inner.set(&key, &value).map_err(|e| e.to_string())
+    let store = Arc::clone(store.inner());
+    off_main(move || store.inner.set(&key, &value).map_err(|e| e.to_string())).await
 }
 
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn secret_delete(
+pub async fn secret_delete(
     store: tauri::State<'_, Arc<SecretsStore>>,
     key: String,
 ) -> Result<(), String> {
-    store.inner.delete(&key).map_err(|e| e.to_string())
+    let store = Arc::clone(store.inner());
+    off_main(move || store.inner.delete(&key).map_err(|e| e.to_string())).await
 }
 
 #[tauri::command]
-#[allow(clippy::needless_pass_by_value)]
-pub fn secret_keys(store: tauri::State<'_, Arc<SecretsStore>>) -> Result<Vec<String>, String> {
-    store.inner.keys().map_err(|e| e.to_string())
+pub async fn secret_keys(
+    store: tauri::State<'_, Arc<SecretsStore>>,
+) -> Result<Vec<String>, String> {
+    let store = Arc::clone(store.inner());
+    off_main(move || store.inner.keys().map_err(|e| e.to_string())).await
 }

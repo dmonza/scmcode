@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
-use sidex_context::{ContextPredictor, FileCache, IncrementalIndexer};
+use sidex_context::IncrementalIndexer;
 
 use super::{get_int, get_str, resolve_path, Args};
 
@@ -15,8 +15,6 @@ const MIN_UPDATE_INTERVAL: Duration = Duration::from_secs(2);
 
 struct IndexState {
     indexer: IncrementalIndexer,
-    predictor: ContextPredictor,
-    file_cache: FileCache,
     last_indexed: Instant,
     last_updated: Instant,
     workspace_root: String,
@@ -39,39 +37,9 @@ fn cloud_client() -> &'static reqwest::blocking::Client {
     })
 }
 
-/// Called by `file_ops::read_file` to check the predictive cache before disk I/O.
-pub fn cache_get(path: &str) -> Option<String> {
-    let mut guard = index_lock().lock().ok()?;
-    let state = guard.as_mut()?;
-    state.file_cache.get(path).map(str::to_string)
-}
-
-/// Called by `file_ops::read_file` after a successful read to record the access,
-/// generate predictions, and pre-fetch into the cache on a background thread.
-pub fn notify_file_read(abs_path: &str, content: &str) {
-    let Ok(mut guard) = index_lock().lock() else {
-        return;
-    };
-    let Some(state) = guard.as_mut() else {
-        return;
-    };
-
-    state
-        .file_cache
-        .insert(abs_path.to_string(), content.to_string());
-
-    state.predictor.record_access(abs_path);
-    let predicted = state.predictor.predict_next(abs_path, 8);
-    let paths_to_fetch: Vec<String> = predicted
-        .into_iter()
-        .filter(|p| !state.file_cache.contains(&p.file_path))
-        .map(|p| p.file_path)
-        .collect();
-
-    if !paths_to_fetch.is_empty() {
-        state.file_cache.prefetch(&paths_to_fetch);
-    }
-}
+// scmCode: the predictive read cache (file_cache + predictor, fed by read_file) was
+// removed: it served stale content after a file changed (docs/audit TR-15, D8).
+// Agent reads go to disk, like every other reader.
 
 fn ensure_indexed(guard: &mut Option<IndexState>, ctx: &ToolContext) -> Result<()> {
     if guard.is_some() {
@@ -87,14 +55,8 @@ fn ensure_indexed(guard: &mut Option<IndexState>, ctx: &ToolContext) -> Result<(
     let mut indexer = IncrementalIndexer::new(root_path);
     let _stats = indexer.full_index().context("failed to index workspace")?;
 
-    let graph = sidex_context::build_graph_from_indexer(&indexer);
-    let predictor = ContextPredictor::new(graph);
-    let file_cache = FileCache::new(50);
-
     *guard = Some(IndexState {
         indexer,
-        predictor,
-        file_cache,
         last_indexed: Instant::now(),
         last_updated: Instant::now(),
         workspace_root: root,
@@ -126,12 +88,6 @@ pub fn index(args: &Args, ctx: &ToolContext) -> Result<String> {
             let stats = state.indexer.update().context("failed to update index")?;
             let elapsed = start.elapsed();
 
-            // Only rebuild the graph if files actually changed
-            if stats.files_updated > 0 || stats.files_removed > 0 {
-                let graph = sidex_context::build_graph_from_indexer(&state.indexer);
-                state.predictor = ContextPredictor::new(graph);
-            }
-
             state.last_indexed = Instant::now();
             state.last_updated = Instant::now();
 
@@ -154,10 +110,6 @@ pub fn index(args: &Args, ctx: &ToolContext) -> Result<String> {
     let start = Instant::now();
     let mut indexer = IncrementalIndexer::new(root_path);
     let stats = indexer.full_index().context("failed to index workspace")?;
-
-    let graph = sidex_context::build_graph_from_indexer(&indexer);
-    let predictor = ContextPredictor::new(graph);
-    let file_cache = FileCache::new(50);
     let elapsed = start.elapsed();
 
     let chunk_count = stats.chunks_indexed;
@@ -165,15 +117,13 @@ pub fn index(args: &Args, ctx: &ToolContext) -> Result<String> {
 
     *guard = Some(IndexState {
         indexer,
-        predictor,
-        file_cache,
         last_indexed: Instant::now(),
         last_updated: Instant::now(),
         workspace_root: root,
     });
 
     Ok(format!(
-        "Indexed {chunk_count} chunks from {file_count} files in {:.1}s (predictive cache ready)",
+        "Indexed {chunk_count} chunks from {file_count} files in {:.1}s",
         elapsed.as_secs_f64()
     ))
 }
@@ -183,8 +133,8 @@ pub fn search(args: &Args, ctx: &ToolContext) -> Result<String> {
     if query.is_empty() {
         anyhow::bail!("query is required");
     }
-    let limit = get_int(args, "limit", 20) as usize;
-    let budget = get_int(args, "budget", 8000) as usize;
+    let limit = get_int(args, "limit", 20).clamp(1, 200) as usize;
+    let budget = get_int(args, "budget", 8000).clamp(1, 200_000) as usize;
 
     // 1. Search local BM25 index. Scope the global index lock to this block:
     // holding it across the cloud request below would serialize every
@@ -353,7 +303,6 @@ pub fn status(_args: &Args, _ctx: &ToolContext) -> Result<String> {
     match guard.as_ref() {
         Some(state) => {
             let ago = state.last_indexed.elapsed();
-            let cache_stats = state.file_cache.stats();
             let mut result = HashMap::new();
             result.insert("indexed", serde_json::json!(true));
             result.insert(
@@ -363,18 +312,6 @@ pub fn status(_args: &Args, _ctx: &ToolContext) -> Result<String> {
             result.insert("file_count", serde_json::json!(state.indexer.file_count()));
             result.insert("watching", serde_json::json!(state.indexer.is_watching()));
             result.insert("last_indexed_ago_secs", serde_json::json!(ago.as_secs()));
-            result.insert(
-                "predict_cache_entries",
-                serde_json::json!(cache_stats.entry_count),
-            );
-            result.insert(
-                "predict_cache_size_bytes",
-                serde_json::json!(cache_stats.current_size_bytes),
-            );
-            result.insert(
-                "predict_cache_max_bytes",
-                serde_json::json!(cache_stats.max_size_bytes),
-            );
             Ok(serde_json::to_string_pretty(&result)?)
         }
         None => {

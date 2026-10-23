@@ -59,7 +59,7 @@ Rules:
 }
 
 func (r *Registry) gitStatus(args map[string]interface{}) ExecutionResult {
-	cmd := exec.Command("git", "status", "--short", "--branch")
+	cmd := GitCommand("status", "--short", "--branch")
 	cmd.Dir = r.cwd
 	out, err := cmd.CombinedOutput()
 	if err != nil && len(out) == 0 {
@@ -70,7 +70,7 @@ func (r *Registry) gitStatus(args map[string]interface{}) ExecutionResult {
 
 func (r *Registry) gitLog(args map[string]interface{}) ExecutionResult {
 	n := intOr(args, "count", 10)
-	cmd := exec.Command("git", "log", fmt.Sprintf("-%d", n), "--oneline", "--decorate")
+	cmd := GitCommand("log", fmt.Sprintf("-%d", n), "--oneline", "--decorate")
 	cmd.Dir = r.cwd
 	out, err := cmd.CombinedOutput()
 	if err != nil && len(out) == 0 {
@@ -87,7 +87,7 @@ func (r *Registry) gitCommit(args map[string]interface{}) ExecutionResult {
 
 	files := str(args, "files")
 	if files == "" || files == "." {
-		cmd := exec.Command("git", "add", "-A")
+		cmd := GitCommand("add", "-A")
 		cmd.Dir = r.cwd
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return ExecutionResult{Error: string(out)}
@@ -95,13 +95,13 @@ func (r *Registry) gitCommit(args map[string]interface{}) ExecutionResult {
 	} else {
 		for _, f := range strings.Split(files, ",") {
 			f = strings.TrimSpace(f)
-			cmd := exec.Command("git", "add", f)
+			cmd := GitCommand("add", f)
 			cmd.Dir = r.cwd
 			cmd.CombinedOutput()
 		}
 	}
 
-	cmd := exec.Command("git", "commit", "-m", message)
+	cmd := GitCommand("commit", "-m", message)
 	cmd.Dir = r.cwd
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -114,9 +114,9 @@ func (r *Registry) gitDiffFile(args map[string]interface{}) ExecutionResult {
 	file := str(args, "path")
 	var cmd *exec.Cmd
 	if file != "" {
-		cmd = exec.Command("git", "diff", "--", file)
+		cmd = GitCommand("diff", "--", file)
 	} else {
-		cmd = exec.Command("git", "diff")
+		cmd = GitCommand("diff")
 	}
 	cmd.Dir = r.cwd
 	out, _ := cmd.CombinedOutput()

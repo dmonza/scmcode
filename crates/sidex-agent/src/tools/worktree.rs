@@ -1,8 +1,7 @@
-use super::no_console; // scmCode
+use super::git::git_command; // scmCode
 use super::{get_str, Args};
 use crate::ToolContext;
 use anyhow::{bail, Result};
-use std::process::Command;
 
 pub fn create_worktree(args: &Args, ctx: &ToolContext) -> Result<String> {
     if !is_git_repo(&ctx.cwd) {
@@ -24,7 +23,7 @@ pub fn create_worktree(args: &Args, ctx: &ToolContext) -> Result<String> {
         std::fs::create_dir_all(parent)?;
     }
 
-    let output = no_console(Command::new("git"))
+    let output = git_command()
         .args(["worktree", "add", &wt_path, "-b", &branch])
         .current_dir(&ctx.cwd)
         .output()?;
@@ -54,7 +53,7 @@ pub fn remove_worktree(args: &Args, ctx: &ToolContext) -> Result<String> {
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
 
-    let output = no_console(Command::new("git"))
+    let output = git_command()
         .args(["worktree", "remove", "--force", path])
         .current_dir(&ctx.cwd)
         .output()?;
@@ -71,7 +70,7 @@ pub fn remove_worktree(args: &Args, ctx: &ToolContext) -> Result<String> {
     if delete_branch {
         let branch = get_str(args, "branch");
         if !branch.is_empty() {
-            let br_out = no_console(Command::new("git"))
+            let br_out = git_command()
                 .args(["branch", "-D", branch])
                 .current_dir(&ctx.cwd)
                 .output()?;
@@ -91,7 +90,7 @@ pub fn list_worktrees(_args: &Args, ctx: &ToolContext) -> Result<String> {
         bail!("not inside a git repository");
     }
 
-    let output = no_console(Command::new("git"))
+    let output = git_command()
         .args(["worktree", "list"])
         .current_dir(&ctx.cwd)
         .output()?;
@@ -108,7 +107,7 @@ pub fn list_worktrees(_args: &Args, ctx: &ToolContext) -> Result<String> {
 }
 
 fn is_git_repo(dir: &str) -> bool {
-    no_console(Command::new("git"))
+    git_command()
         .args(["rev-parse", "--is-inside-work-tree"])
         .current_dir(dir)
         .output()

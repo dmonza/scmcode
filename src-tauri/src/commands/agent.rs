@@ -13,6 +13,10 @@ fn tool_semaphore() -> &'static Semaphore {
     TOOL_SEMAPHORE.get_or_init(|| Semaphore::new(2))
 }
 
+/// Longest a single tool call may hold a permit: the shell tool's 300 s maximum
+/// plus room for its cleanup.
+const TOOL_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(330);
+
 /// Tools that mutate files on disk; their targets must be snapshotted for
 /// checkpoint rollback BEFORE execution.
 fn is_write_tool(name: &str) -> bool {
@@ -70,6 +74,7 @@ pub async fn agent_execute_tool(
     request: AgentToolRequest,
 ) -> Result<AgentToolResponse, String> {
     let fallback_id = request.tool_call_id.clone();
+    let name = request.name.clone();
 
     // Snapshot pre-edit content for write tools so checkpoint rollback and
     // chat "Reject" can actually restore files modified by the agent.
@@ -91,7 +96,11 @@ pub async fn agent_execute_tool(
         }
     };
 
-    let result = tauri::async_runtime::spawn_blocking(move || {
+    // scmCode: bound the wait so a tool that never returns can't hold one of the two
+    // permits forever and stall every later tool call (docs/audit TR-09). The blocking
+    // thread can't be cancelled; it is left to finish on its own. The shell tool kills
+    // its process tree after at most 300 s, so this only fires for a tool that hangs.
+    let task = tauri::async_runtime::spawn_blocking(move || {
         let ctx = sidex_agent::ToolContext {
             cwd: request.cwd.clone(),
             token: request.token.clone(),
@@ -107,12 +116,19 @@ pub async fn agent_execute_tool(
             output: resp.output,
             error: resp.error,
         }
-    })
-    .await;
-
-    Ok(result.unwrap_or_else(|e| AgentToolResponse {
+    });
+    let error = match tokio::time::timeout(TOOL_TIMEOUT, task).await {
+        Ok(Ok(resp)) => return Ok(resp),
+        // A panic in the tool surfaces here as a JoinError (release builds unwind).
+        Ok(Err(e)) => format!("internal error: {e}"),
+        Err(_) => format!(
+            "tool {name} did not finish within {}s",
+            TOOL_TIMEOUT.as_secs()
+        ),
+    };
+    Ok(AgentToolResponse {
         tool_call_id: fallback_id,
         output: String::new(),
-        error: format!("internal error: {e}"),
-    }))
+        error,
+    })
 }

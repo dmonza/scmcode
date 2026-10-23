@@ -21,11 +21,11 @@ class SidexCompleteContribution implements IWorkbenchContribution {
 		if (!configurationService.getValue<boolean>(SIDEX_AI_ENABLED_SETTING)) {
 			return;
 		}
-		// Defaults to the agent server the app runs locally; an explicit
-		// setting points completions somewhere else. Registration waits for
-		// the port to be known, but the URL is re-read per request so a server
-		// restart doesn't strand the provider on a dead port.
-		const resolveUrl = () => serverHttpUrl(configurationService.getValue<string>('sidex.complete.serverUrl'));
+		// The agent server the app runs locally. scmCode: no `sidex.complete.serverUrl`
+		// override (docs/audit TR-04). Registration waits for the port to be known, but
+		// the URL is re-read per request so a server restart doesn't strand the provider
+		// on a dead port.
+		const resolveUrl = () => serverHttpUrl();
 		void resolveServerEndpoint().then(() => {
 			const provider = new SidexCompleteProvider(resolveUrl);
 			languageFeaturesService.inlineCompletionsProvider.register('*', provider);

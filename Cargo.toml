@@ -108,4 +108,8 @@ opt-level = 3
 lto = "thin"
 codegen-units = 1
 strip = true
-panic = "abort"
+# scmCode: unwind, not abort. A panic in one Tauri command or agent tool is caught at
+# its task boundary (spawn_blocking returns JoinError) instead of killing the editor and
+# the user's unsaved work. VS Code keeps the window alive when a main-process handler
+# throws; this is the Rust equivalent.
+panic = "unwind"

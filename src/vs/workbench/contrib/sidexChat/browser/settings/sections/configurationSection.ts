@@ -56,14 +56,15 @@ export class ConfigurationSection implements SettingsSection {
 				const data = await this._invoke('settings_get', { section: 'sidex.cascade' }) as SettingsData | null;
 				if (data) {
 					this._settings = data;
-					if (typeof data.allowedOrigins === 'string') {
-						this._origins = JSON.parse(data.allowedOrigins as string);
+					// scmCode: the lists now come back as arrays (scmcodeChatSettings.ts, TR-08).
+					if (Array.isArray(data.allowedOrigins)) {
+						this._origins = data.allowedOrigins as string[];
 					}
-					if (typeof data.allowList === 'string') {
-						this._allowList = JSON.parse(data.allowList as string);
+					if (Array.isArray(data.allowList)) {
+						this._allowList = data.allowList as string[];
 					}
-					if (typeof data.denyList === 'string') {
-						this._denyList = JSON.parse(data.denyList as string);
+					if (Array.isArray(data.denyList)) {
+						this._denyList = data.denyList as string[];
 					}
 				}
 			} catch { /* use defaults */ }

@@ -3,7 +3,6 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -521,7 +520,7 @@ func mergeWorktreeBranches(subtasks []Subtask, cwd string, conn Conn) {
 		if st.Branch == "" || st.Status != "completed" || st.Diff == "" {
 			continue
 		}
-		cmd := exec.Command("git", "merge", "--no-edit", st.Branch)
+		cmd := tools.GitCommand("merge", "--no-edit", st.Branch)
 		cmd.Dir = cwd
 		out, err := cmd.CombinedOutput()
 		if err != nil {
@@ -529,7 +528,7 @@ func mergeWorktreeBranches(subtasks []Subtask, cwd string, conn Conn) {
 				Type:    "multitask_merge",
 				Content: fmt.Sprintf("Merge of branch %s failed: %s\n%s", st.Branch, err.Error(), string(out)),
 			})
-			undoCmd := exec.Command("git", "merge", "--abort")
+			undoCmd := tools.GitCommand("merge", "--abort")
 			undoCmd.Dir = cwd
 			_ = undoCmd.Run()
 		} else {

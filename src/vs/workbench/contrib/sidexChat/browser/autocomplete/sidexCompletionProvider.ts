@@ -28,8 +28,8 @@ export class SidexCompletionProvider implements InlineCompletionsProvider {
 	) { }
 
 	private get _serverUrl(): string {
-		const wsUrl = serverWsUrl(this._configService.getValue<string>('sidex.chat.serverUrl'));
-		return wsUrl.replace(/^ws/, 'http');
+		// scmCode: no override (docs/audit TR-04).
+		return serverWsUrl().replace(/^ws/, 'http');
 	}
 
 	async provideInlineCompletions(

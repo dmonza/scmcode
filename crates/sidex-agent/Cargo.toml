@@ -22,8 +22,14 @@ memchr = { workspace = true }
 sidex-context = { workspace = true }
 urlencoding = "2"
 
+# scmCode: the shell tool runs each command in its own process group (Unix) or Job
+# Object (Windows) so a timeout or the end of the call kills the whole tree.
 [target.'cfg(unix)'.dependencies]
-libc = "0.2"
+nix = { version = "0.31", default-features = false, features = ["signal"] }
+
+[target.'cfg(windows)'.dependencies]
+process-wrap = { version = "10", default-features = false, features = ["std", "job-object", "creation-flags"] }
+windows = { version = "0.62", features = ["Win32_System_Threading"] }
 
 [dev-dependencies]
 tempfile = "3"

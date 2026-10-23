@@ -116,12 +116,10 @@ function isSyncedModelScheme(scheme: string): boolean {
 	return scheme === 'file' || scheme === 'vscode-file';
 }
 
-function sanitizeForExtHost(text: string): string {
-	return text
-		.replace(/\u00a0/g, ' ')
-		.replace(/[\u200b-\u200f\u202a-\u202e\u2060\ufeff]/g, '')
-		.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '');
-}
+// scmCode: documents go to the extension host and the WASM runtime exactly as the
+// model holds them, as VS Code's MainThreadDocuments does. SideX stripped NBSP, zero-width
+// and bidi marks and C0 controls here, so a whole-document formatter edit silently
+// deleted them and range results landed on shifted columns (docs/audit TR-14).
 
 
 
@@ -310,7 +308,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 	private _syncDocumentsToWasm(): void {
 		for (const model of this.modelService.getModels()) {
 			if (isSyncedModelScheme(model.uri.scheme)) {
-				wasmSyncDocument(model.uri.toString(), model.getLanguageId(), sanitizeForExtHost(model.getValue())).catch(() => {});
+				wasmSyncDocument(model.uri.toString(), model.getLanguageId(), model.getValue()).catch(() => {});
 			}
 		}
 
@@ -321,7 +319,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 
 		this._register(this.modelService.onModelAdded(model => {
 			if (isSyncedModelScheme(model.uri.scheme)) {
-				wasmSyncDocument(model.uri.toString(), model.getLanguageId(), sanitizeForExtHost(model.getValue())).catch(() => {});
+				wasmSyncDocument(model.uri.toString(), model.getLanguageId(), model.getValue()).catch(() => {});
 			}
 		}));
 		this._register(this.modelService.onModelRemoved(model => {
@@ -345,7 +343,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 				}
 				debounceTimer = setTimeout(() => {
 					debounceTimer = undefined;
-					wasmSyncDocument(model.uri.toString(), model.getLanguageId(), sanitizeForExtHost(model.getValue())).catch(() => {});
+					wasmSyncDocument(model.uri.toString(), model.getLanguageId(), model.getValue()).catch(() => {});
 				}, 300);
 			});
 			this._modelContentListeners.set(key, disposable);
@@ -1631,7 +1629,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 			} as CompletionItem);
 		};
 
-		const text = sanitizeForExtHost(model.getValue());
+		const text = model.getValue();
 		const re = /[A-Za-z_][$\w-]{2,}/g;
 		let m: RegExpExecArray | null = null;
 		while ((m = re.exec(text)) !== null) {
@@ -1664,7 +1662,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 		}
 
 		const escaped = this._escapeForRegExp(word.word);
-		const occurrenceCount = (sanitizeForExtHost(model.getValue()).match(new RegExp(`\\b${escaped}\\b`, 'g')) || []).length;
+		const occurrenceCount = (model.getValue().match(new RegExp(`\\b${escaped}\\b`, 'g')) || []).length;
 		const label = occurrenceCount === 1 ? 'occurrence' : 'occurrences';
 		const hover: Hover = {
 			contents: [
@@ -2074,7 +2072,7 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 	}
 
 	private _notifyDocumentOpened(model: ITextModel): void {
-		const text = sanitizeForExtHost(model.getValue());
+		const text = model.getValue();
 		this._send({
 			id: this._nextId(),
 			type: 'documentOpened',
@@ -2103,9 +2101,9 @@ class TauriExtensionHostContribution extends Disposable implements IWorkbenchCon
 				},
 				rangeOffset: c.rangeOffset,
 				rangeLength: c.rangeLength,
-				text: sanitizeForExtHost(c.text),
+				text: c.text,
 			}));
-			const text = sanitizeForExtHost(model.getValue());
+			const text = model.getValue();
 			this._send({
 				id: this._nextId(),
 				type: 'documentChanged',
