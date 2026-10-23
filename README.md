@@ -1,7 +1,7 @@
 <h1 align="center">scmCode</h1>
 
 <p align="center">
-  <strong>A minimal, privacy-focused code editor.</strong>
+  <strong>A minimal, privacy-focused code editor based on VS Code.</strong>
 </p>
 
 <p align="center">

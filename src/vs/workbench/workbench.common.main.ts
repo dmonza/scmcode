@@ -228,6 +228,19 @@ import './contrib/sash/browser/sash.contribution.js';
 import './contrib/scm/browser/scm.contribution.js';
 import './contrib/scm/browser/git.contribution.js';
 
+// scmCode: restored from Code - OSS (ce6ab2d6) so the Timeline view and Local History
+// work as in VS Code. The working-copy history service and its save tracker are already
+// registered (services/workingCopy); SideX had dropped only this UI layer — the Timeline
+// pane, the Local History timeline source, and the restore/compare/delete commands.
+// Local History is scmCode's in-editor recovery for files a save overwrote, independent
+// of Git. See docs/audit/2026-10-23-safety-reliability-and-data-durability-review.md (DL-02).
+
+// Timeline
+import './contrib/timeline/browser/timeline.contribution.js';
+
+// Local History
+import './contrib/localHistory/browser/localHistory.contribution.js';
+
 // Remote Explorer
 import './contrib/remote/browser/remote.contribution.js';
 

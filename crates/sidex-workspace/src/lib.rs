@@ -14,7 +14,6 @@ pub mod multi_root;
 pub mod outline;
 pub mod path_util;
 pub mod search;
-pub mod timeline;
 pub mod trust;
 pub mod watcher;
 pub mod workspace;
@@ -57,7 +56,6 @@ pub use search::{
     SearchProgressCallback, SearchProgressInfo, SearchQuery, SearchResult, SearchResultCache,
     SearchResultGroup,
 };
-pub use timeline::{Timeline, TimelineEntry, TimelineIcon, TimelineSource};
 pub use trust::{
     ExtensionTrustCapability, RestrictedFeature, RestrictedMode, RestrictedModeBanner, TrustPrompt,
     TrustPromptResponse, TrustState, WorkspaceTrust,

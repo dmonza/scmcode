@@ -97,7 +97,11 @@ scmCode stores its own data locally, on your machine. You are responsible for se
 backing it up:
 
 - `~/.scmcode/` — agent state, sessions, memory, skills, rules, MCP configuration
-- the OS application-data folder named `scmCode` — editor settings, extensions, profiles
+- the OS application-data folder named `scmCode` — editor settings, extensions, profiles,
+  and Local History: copies of earlier versions of files you edit, kept on disk so you can
+  restore or compare them from the Timeline view (as in VS Code; nothing leaves your
+  machine). Control it with `workbench.localHistory.enabled` (on by default),
+  `workbench.localHistory.maxFileEntries` and `workbench.localHistory.exclude`.
 - your OS keyring (with a local fallback store in the app-data folder) — API keys entered
   in Settings → Models
 - `<workspace>/.scmcode/` — optional per-project rules, skills, hooks and MCP servers

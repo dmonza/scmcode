@@ -62,8 +62,18 @@ export class TauriFileSystemProvider extends Disposable implements IFileSystemPr
 	// (src/vs/platform/files/node/diskFileSystemProvider.ts, `capabilities`). On Windows
 	// and macOS `C:\x` and `c:\x` are the same file; treating them as different made
 	// webviews refuse local resources whose drive letter came back in another case.
+	//
+	// scmCode: FileAtomicWrite is advertised because the Rust backend writes every file
+	// atomically (temp sibling + fsync + rename; see
+	// crates/sidex-workspace/src/file_ops.rs `atomic_write`), so a crash during a save can
+	// never truncate the file. Advertising it lets the working-copy and local-history
+	// layers rely on that guarantee, as they do on VS Code desktop
+	// (src/vs/platform/files/node/diskFileSystemProvider.ts). DL-01 in
+	// docs/audit/2026-10-23-safety-reliability-and-data-durability-review.md.
 	readonly capabilities: FileSystemProviderCapabilities =
-		FileSystemProviderCapabilities.FileReadWrite | (isLinux ? FileSystemProviderCapabilities.PathCaseSensitive : 0);
+		FileSystemProviderCapabilities.FileReadWrite |
+		FileSystemProviderCapabilities.FileAtomicWrite |
+		(isLinux ? FileSystemProviderCapabilities.PathCaseSensitive : 0);
 
 	readonly onDidChangeCapabilities = Event.None;
 

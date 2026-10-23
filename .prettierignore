@@ -18,6 +18,11 @@ src/vs/workbench/browser/parts/sidex/sidexPart.ts
 src/vs/workbench/browser/parts/statusbar/statusbarModel.ts
 src/vs/workbench/browser/parts/titlebar/titlebarPart.ts
 src/vs/workbench/browser/workbench.ts
+src/vs/workbench/contrib/localHistory/browser/localHistory.contribution.ts
+src/vs/workbench/contrib/localHistory/browser/localHistory.ts
+src/vs/workbench/contrib/localHistory/browser/localHistoryCommands.ts
+src/vs/workbench/contrib/localHistory/browser/localHistoryFileSystemProvider.ts
+src/vs/workbench/contrib/localHistory/browser/localHistoryTimeline.ts
 src/vs/workbench/contrib/preferences/browser/preferencesEditor.ts
 src/vs/workbench/contrib/sidexChat/browser/account/accountPanel.ts
 src/vs/workbench/contrib/sidexChat/browser/account/accountService.ts
@@ -78,4 +83,7 @@ src/vs/workbench/contrib/sidexComplete/browser/sidexComplete.contribution.ts
 src/vs/workbench/contrib/sidexComplete/browser/sidexCompleteProvider.ts
 src/vs/workbench/contrib/sidexComplete/browser/sidexCompleteService.ts
 src/vs/workbench/contrib/sidexUpdate/browser/sidexUpdate.contribution.ts
+src/vs/workbench/contrib/timeline/browser/timeline.contribution.ts
+src/vs/workbench/contrib/timeline/browser/timelinePane.ts
+src/vs/workbench/contrib/timeline/common/timeline.ts
 src/vs/workbench/services/update/browser/updateService.ts
