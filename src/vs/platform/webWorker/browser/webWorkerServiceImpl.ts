@@ -13,6 +13,7 @@ import { IWebWorker, IWebWorkerClient, Message, WebWorkerClient } from '../../..
 import { getNLSLanguage, getNLSMessages } from '../../../nls.js';
 import { WebWorkerDescriptor } from './webWorkerDescriptor.js';
 import { IWebWorkerService } from './webWorkerService.js';
+import { SCMCODE_WORKER_URLS } from './scmcodeWorkerUrls.js';
 
 export class WebWorkerService implements IWebWorkerService {
 	private static _workerIdPool: number = 0;
@@ -52,19 +53,18 @@ export class WebWorkerService implements IWebWorkerService {
 	}
 
 	getWorkerUrl(descriptor: WebWorkerDescriptor): string {
+		// scmCode: a built app, on every OS, uses the workers Vite bundles on their own
+		// (scmcodeWorkerUrls.ts). SideX matched the `tauri:` protocol only, so on Windows
+		// (https://tauri.localhost) it fell through to `esmModuleLocationBundler`, an
+		// uncompiled copy of the worker's source; and its worker files shared chunks with the
+		// window that fail in a worker ("window is not defined") (ISSUE-0016). The URL is made
+		// absolute because the blob bootstrap below imports it from a `blob:` URL.
 		const isTauriProduction =
 			(globalThis as typeof globalThis & { __SIDEX_TAURI__?: boolean }).__SIDEX_TAURI__ === true &&
-			globalThis.location?.protocol === 'tauri:';
-		if (isTauriProduction) {
-			if (descriptor.label === 'editorWorkerService') {
-				return `${globalThis.location.origin}/assets/editorWorker.js`;
-			}
-			if (descriptor.label === 'TextMateWorker') {
-				return `${globalThis.location.origin}/assets/textMateWorker.js`;
-			}
-			if (descriptor.label === 'extensionHostWorkerMain') {
-				return `${globalThis.location.origin}/assets/extensionHostWorker.js`;
-			}
+			import.meta.env.PROD;
+		const builtWorkerUrl = isTauriProduction ? SCMCODE_WORKER_URLS[descriptor.label] : undefined;
+		if (builtWorkerUrl) {
+			return new URL(builtWorkerUrl, globalThis.location.href).toString();
 		}
 
 		// Prefer bundler location for Vite/Webpack compatibility

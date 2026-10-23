@@ -52,9 +52,10 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: path.resolve(__dirname, 'index.html'),
-        textMateWorker: path.resolve(__dirname, 'src/vs/workbench/services/textMate/browser/backgroundTokenization/worker/textMateTokenizationWorker.workerMain.ts'),
-        editorWorker: path.resolve(__dirname, 'src/vs/editor/common/services/editorWebWorkerMain.ts'),
-        extensionHostWorker: path.resolve(__dirname, 'src/vs/workbench/api/worker/extensionHostWorkerMain.ts'),
+        // scmCode: no worker entries here. As inputs of this build, the workers shared
+        // chunks with the window that read `window` at load and failed in a worker. Each
+        // worker is bundled on its own through `?worker&url`
+        // (src/vs/platform/webWorker/browser/scmcodeWorkerUrls.ts, ISSUE-0016).
         // Force the NLS runtime (localize/localize2) into its own chunk so it
         // loads first and has its global translation tables in place before any
         // module evaluates `localize()` at top-level module scope.
@@ -62,15 +63,6 @@ export default defineConfig({
       },
       output: {
         entryFileNames: (chunkInfo) => {
-          if (chunkInfo.name === 'editorWorker') {
-            return 'assets/editorWorker.js';
-          }
-          if (chunkInfo.name === 'textMateWorker') {
-            return 'assets/textMateWorker.js';
-          }
-          if (chunkInfo.name === 'extensionHostWorker') {
-            return 'assets/extensionHostWorker.js';
-          }
           if (chunkInfo.name === 'nls') {
             return 'assets/nls.js';
           }

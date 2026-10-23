@@ -6,8 +6,8 @@
 import { Readable, ReadableStream, newWriteableStream, listenStream } from '../../../../base/common/stream.js';
 import { VSBuffer, VSBufferReadable, VSBufferReadableStream } from '../../../../base/common/buffer.js';
 import { importAMDNodeModule } from '../../../../amdX.js';
+import { scmcodeGuessEncoding } from './scmcodeEncodingGuess.js';
 import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
-import { coalesce } from '../../../../base/common/arrays.js';
 
 export const UTF8 = 'utf8';
 export const UTF8_with_bom = 'utf8bom';
@@ -15,6 +15,24 @@ export const UTF16be = 'utf16be';
 export const UTF16le = 'utf16le';
 
 export type UTF_ENCODING = typeof UTF8 | typeof UTF8_with_bom | typeof UTF16be | typeof UTF16le;
+
+/**
+ * scmCode: in the Tauri build Vite bundles iconv-lite; there is no `node_modules` folder for
+ * `importAMDNodeModule` to load it from, so the request got the app's index.html and resolved
+ * to `undefined`, and every non-UTF-8 file (UTF-16 with BOM, Windows-1252, …) failed to open or
+ * save. SideX does the same for vscode-textmate (`textMateTokenizationFeatureImpl.ts`).
+ */
+async function importIconv(): Promise<typeof import('@vscode/iconv-lite-umd')> {
+	if ((globalThis as { __SIDEX_TAURI__?: unknown }).__SIDEX_TAURI__) {
+		const mod = await import('@vscode/iconv-lite-umd');
+		// A UMD module comes through Vite's CommonJS interop as `default`.
+		return mod.default ?? mod;
+	}
+	return importAMDNodeModule<typeof import('@vscode/iconv-lite-umd')>(
+		'@vscode/iconv-lite-umd',
+		'lib/iconv-lite-umd.js'
+	);
+}
 
 export function isUTFEncoding(encoding: string): encoding is UTF_ENCODING {
 	return [UTF8, UTF8_with_bom, UTF16be, UTF16le].some(utfEncoding => utfEncoding === encoding);
@@ -27,7 +45,7 @@ export const UTF8_BOM = [0xef, 0xbb, 0xbf];
 const ZERO_BYTE_DETECTION_BUFFER_MAX_LEN = 512; // number of bytes to look at to decide about a file being binary or not
 const NO_ENCODING_GUESS_MIN_BYTES = 512; // when not auto guessing the encoding, small number of bytes are enough
 const AUTO_ENCODING_GUESS_MIN_BYTES = 512 * 8; // with auto guessing we want a lot more content to be read for guessing
-const AUTO_ENCODING_GUESS_MAX_BYTES = 512 * 128; // set an upper limit for the number of bytes we pass on to jschardet
+const AUTO_ENCODING_GUESS_MAX_BYTES = 512 * 128; // set an upper limit for the number of bytes we pass on to the guesser
 
 export interface IDecodeStreamOptions {
 	acceptTextOnly: boolean;
@@ -79,10 +97,7 @@ class DecoderStream implements IDecoderStream {
 	static async create(encoding: string): Promise<DecoderStream> {
 		let decoder: IDecoderStream | undefined = undefined;
 		if (encoding !== UTF8) {
-			const iconv = await importAMDNodeModule<typeof import('@vscode/iconv-lite-umd')>(
-				'@vscode/iconv-lite-umd',
-				'lib/iconv-lite-umd.js'
-			);
+			const iconv = await importIconv(); // scmCode
 			decoder = iconv.getDecoder(toNodeEncoding(encoding));
 		} else {
 			const utf8TextDecoder = new TextDecoder();
@@ -230,10 +245,7 @@ export async function toEncodeReadable(
 	encoding: string,
 	options?: { addBOM?: boolean }
 ): Promise<VSBufferReadable> {
-	const iconv = await importAMDNodeModule<typeof import('@vscode/iconv-lite-umd')>(
-		'@vscode/iconv-lite-umd',
-		'lib/iconv-lite-umd.js'
-	);
+	const iconv = await importIconv(); // scmCode
 	const encoder = iconv.getEncoder(toNodeEncoding(encoding), options);
 
 	let bytesWritten = false;
@@ -282,10 +294,7 @@ export async function toEncodeReadable(
 }
 
 export async function encodingExists(encoding: string): Promise<boolean> {
-	const iconv = await importAMDNodeModule<typeof import('@vscode/iconv-lite-umd')>(
-		'@vscode/iconv-lite-umd',
-		'lib/iconv-lite-umd.js'
-	);
+	const iconv = await importIconv(); // scmCode
 
 	return iconv.encodingExists(toNodeEncoding(encoding));
 }
@@ -333,87 +342,22 @@ export function detectEncodingByBOMFromBuffer(
 	return null;
 }
 
-// we explicitly ignore a specific set of encodings from auto guessing
-// - ASCII: we never want this encoding (most UTF-8 files would happily detect as
-//          ASCII files and then you could not type non-ASCII characters anymore)
-// - UTF-16: we have our own detection logic for UTF-16
-// - UTF-32: we do not support this encoding in VSCode
-const IGNORE_ENCODINGS = ['ascii', 'utf-16', 'utf-32'];
-
 /**
  * Guesses the encoding from buffer.
+ *
+ * scmCode: with scmCode's own guesser (`scmcodeEncodingGuess.ts`) instead of jschardet, which
+ * is LGPL-2.1+ and wasn't loadable in the Tauri build (docs/issues/closed/ISSUE-0017). The guesser
+ * never returns ASCII, as VS Code ignored it from jschardet, and leaves UTF-16 to the
+ * detection above.
  */
 async function guessEncodingByBuffer(buffer: VSBuffer, candidateGuessEncodings?: string[]): Promise<string | null> {
-	const jschardet = await importAMDNodeModule<typeof import('jschardet')>('jschardet', 'dist/jschardet.min.js');
-
-	// ensure to limit buffer for guessing due to https://github.com/aadsm/jschardet/issues/53
+	const iconv = await importIconv();
 	const limitedBuffer = buffer.slice(0, AUTO_ENCODING_GUESS_MAX_BYTES);
-
-	// before guessing jschardet calls toString('binary') on input if it is a Buffer,
-	// since we are using it inside browser environment as well we do conversion ourselves
-	// https://github.com/aadsm/jschardet/blob/v2.1.1/src/index.js#L36-L40
-	const binaryString = encodeLatin1(limitedBuffer.buffer);
-
-	// ensure to convert candidate encodings to jschardet encoding names if provided
-	if (candidateGuessEncodings) {
-		candidateGuessEncodings = coalesce(candidateGuessEncodings.map(e => toJschardetEncoding(e)));
-		if (candidateGuessEncodings.length === 0) {
-			candidateGuessEncodings = undefined;
-		}
-	}
-
-	let guessed: { encoding: string | undefined } | undefined;
-	try {
-		guessed = jschardet.detect(
-			binaryString,
-			candidateGuessEncodings ? { detectEncodings: candidateGuessEncodings } : undefined
-		);
-	} catch (_error) {
-		return null; // jschardet throws for unknown encodings (https://github.com/microsoft/vscode/issues/239928)
-	}
-
-	if (!guessed?.encoding) {
-		return null;
-	}
-
-	const enc = guessed.encoding.toLowerCase();
-	if (0 <= IGNORE_ENCODINGS.indexOf(enc)) {
-		return null; // see comment above why we ignore some encodings
-	}
-
-	return toIconvLiteEncoding(guessed.encoding);
-}
-
-const JSCHARDET_TO_ICONV_ENCODINGS: { [name: string]: string } = {
-	ibm866: 'cp866',
-	big5: 'cp950'
-};
-
-function normalizeEncoding(encodingName: string): string {
-	return encodingName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-}
-
-function toIconvLiteEncoding(encodingName: string): string {
-	const normalizedEncodingName = normalizeEncoding(encodingName);
-	const mapped = JSCHARDET_TO_ICONV_ENCODINGS[normalizedEncodingName];
-
-	return mapped || normalizedEncodingName;
-}
-
-function toJschardetEncoding(encodingName: string): string | undefined {
-	const normalizedEncodingName = normalizeEncoding(encodingName);
-	const mapped = GUESSABLE_ENCODINGS[normalizedEncodingName];
-
-	return mapped ? mapped.guessableName : undefined;
-}
-
-function encodeLatin1(buffer: Uint8Array): string {
-	let result = '';
-	for (let i = 0; i < buffer.length; i++) {
-		result += String.fromCharCode(buffer[i]);
-	}
-
-	return result;
+	return scmcodeGuessEncoding(
+		limitedBuffer.buffer,
+		(bytes, encoding) => iconv.decode(bytes, toNodeEncoding(encoding)),
+		candidateGuessEncodings?.map(encoding => encoding.replace(/[^a-zA-Z0-9]/g, '').toLowerCase())
+	);
 }
 
 /**
