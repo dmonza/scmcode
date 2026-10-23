@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/sidex-ai/sidex-server/internal/agent"
@@ -23,6 +22,7 @@ import (
 	"github.com/sidex-ai/sidex-server/internal/context"
 	"github.com/sidex-ai/sidex-server/internal/cost"
 	"github.com/sidex-ai/sidex-server/internal/feedback"
+	"github.com/sidex-ai/sidex-server/internal/idgen" // scmCode: clean-room UUIDv4, replaces github.com/google/uuid
 	"github.com/sidex-ai/sidex-server/internal/index"
 	"github.com/sidex-ai/sidex-server/internal/localexec"
 	"github.com/sidex-ai/sidex-server/internal/mcp"
@@ -1375,7 +1375,7 @@ func (h *Handler) SaveMemory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if entry.ID == "" {
-		entry.ID = uuid.New().String()
+		entry.ID = idgen.New()
 	}
 	entry.UserID = currentUserID(r)
 	entry.CreatedAt = time.Now()

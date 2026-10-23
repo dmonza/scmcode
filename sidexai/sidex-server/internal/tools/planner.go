@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/sidex-ai/sidex-server/internal/idgen" // scmCode: clean-room UUIDv4, replaces github.com/google/uuid
 )
 
 // Plan represents a structured task plan with ordered steps.
@@ -45,7 +45,7 @@ func (ps *PlanStore) Create(title string, stepDescs []string) *Plan {
 	defer ps.mu.Unlock()
 
 	p := &Plan{
-		ID:        uuid.New().String()[:8],
+		ID:        idgen.New()[:8],
 		Title:     title,
 		Status:    "active",
 		CreatedAt: time.Now(),

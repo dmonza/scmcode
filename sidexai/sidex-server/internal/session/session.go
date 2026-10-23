@@ -8,8 +8,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/google/uuid"
 	"github.com/sidex-ai/sidex-server/internal/ai"
+	"github.com/sidex-ai/sidex-server/internal/idgen" // scmCode: clean-room UUIDv4, replaces github.com/google/uuid
 	"github.com/sidex-ai/sidex-server/internal/memory"
 	"github.com/sidex-ai/sidex-server/internal/tools"
 )
@@ -55,7 +55,7 @@ func (m *Manager) Create(cwd string) *Session {
 
 func (m *Manager) CreateForUser(cwd, userID string) *Session {
 	s := &Session{
-		ID:        uuid.New().String(),
+		ID:        idgen.New(),
 		UserID:    userID,
 		Messages:  []ai.Message{},
 		Tools:     tools.NewRegistryForUser(cwd, userID, m.store),

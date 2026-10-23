@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/sidex-ai/sidex-server/internal/idgen" // scmCode: clean-room UUIDv4, replaces github.com/google/uuid
 )
 
 type Service struct {
@@ -212,7 +212,7 @@ func (s *Service) EnsureUser(accountID, email, planTier string) (string, error) 
 		return "", err
 	}
 
-	id = uuid.New().String()
+	id = idgen.New()
 	now := time.Now().UTC().Format(time.RFC3339)
 	periodStart := billingPeriodStart(time.Now()).Format(time.RFC3339)
 
@@ -230,7 +230,7 @@ func (s *Service) EnsureUser(accountID, email, planTier string) (string, error) 
 // Record persists a usage record and updates the daily aggregate.
 func (s *Service) Record(record UsageRecord) error {
 	if record.ID == "" {
-		record.ID = uuid.New().String()
+		record.ID = idgen.New()
 	}
 	if record.Timestamp.IsZero() {
 		record.Timestamp = time.Now().UTC()

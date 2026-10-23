@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	_ "github.com/lib/pq"
+	"github.com/sidex-ai/sidex-server/internal/idgen" // scmCode: clean-room UUIDv4, replaces github.com/google/uuid
 )
 
 // RemoteUsageEvent is the payload for each LLM usage event written to Postgres.
@@ -63,7 +63,7 @@ func RecordUsageRemote(event RemoteUsageEvent) {
 			return
 		}
 
-		id := uuid.New().String()
+		id := idgen.New()
 		now := time.Now().UTC()
 
 		// Resolve internal user ID from WorkOS ID

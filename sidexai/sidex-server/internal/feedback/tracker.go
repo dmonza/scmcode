@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/sidex-ai/sidex-server/internal/idgen" // scmCode: clean-room UUIDv4, replaces github.com/google/uuid
 )
 
 type SignalType string
@@ -94,7 +94,7 @@ func (t *Tracker) RecordToolOutcome(toolName, taskContext string, turnNumber int
 	}
 
 	sig := Signal{
-		ID:          uuid.New().String(),
+		ID:          idgen.New(),
 		SessionID:   t.sessionID,
 		TurnNumber:  turnNumber,
 		Type:        sigType,
@@ -124,7 +124,7 @@ func (t *Tracker) RecordEditFeedback(toolName string, turnNumber int, accepted b
 	}
 
 	sig := Signal{
-		ID:         uuid.New().String(),
+		ID:         idgen.New(),
 		SessionID:  t.sessionID,
 		TurnNumber: turnNumber,
 		Type:       sigType,
@@ -144,7 +144,7 @@ func (t *Tracker) RecordFollowUp(turnNumber int) {
 	t.followUpCount++
 	if t.followUpCount >= 3 {
 		sig := Signal{
-			ID:         uuid.New().String(),
+			ID:         idgen.New(),
 			SessionID:  t.sessionID,
 			TurnNumber: turnNumber,
 			Type:       SignalFollowUp,
@@ -173,7 +173,7 @@ func (t *Tracker) RecordSessionEnd() {
 	}
 
 	sig := Signal{
-		ID:         uuid.New().String(),
+		ID:         idgen.New(),
 		SessionID:  t.sessionID,
 		TurnNumber: t.turnCount,
 		Type:       sigType,

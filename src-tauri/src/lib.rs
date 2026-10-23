@@ -5,6 +5,7 @@ mod navigation;
 mod scmcode_asset;
 mod scmcode_blocking;
 mod scmcode_children;
+mod scmcode_urldecode;
 #[cfg(feature = "selftest")]
 mod selftest;
 mod server;
@@ -521,8 +522,11 @@ pub fn run() {
                 let reject = |status: u16| secured(status).body(Vec::new()).unwrap();
 
                 let raw_path = request.uri().path();
-                let decoded = urlencoding::decode(raw_path.strip_prefix('/').unwrap_or(raw_path))
-                    .unwrap_or_default();
+                // scmCode: percent-decode with our own minimal decoder instead of the
+                // `urlencoding` crate, to drop a direct dependency (scmcode_urldecode.rs).
+                let decoded =
+                    scmcode_urldecode::decode(raw_path.strip_prefix('/').unwrap_or(raw_path))
+                        .unwrap_or_default();
 
                 // The workbench always sends an absolute file path; reject anything
                 // else before canonicalizing (a relative path would resolve against

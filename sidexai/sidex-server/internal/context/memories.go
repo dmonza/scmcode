@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/sidex-ai/sidex-server/internal/idgen" // scmCode: clean-room UUIDv4, replaces github.com/google/uuid
 )
 
 // MemoryStore manages persistent facts learned across sessions.
@@ -176,7 +176,7 @@ func (ms *MemoryStore) extractPatterns(content string, role string) []AutoMemory
 				}
 
 				results = append(results, AutoMemory{
-					ID:         uuid.New().String(),
+					ID:         idgen.New(),
 					Content:    trimmed,
 					Category:   sig.category,
 					Confidence: confidence,
@@ -193,7 +193,7 @@ func (ms *MemoryStore) extractPatterns(content string, role string) []AutoMemory
 		frameworks := extractFrameworkMentions(lower)
 		for _, fw := range frameworks {
 			results = append(results, AutoMemory{
-				ID:         uuid.New().String(),
+				ID:         idgen.New(),
 				Content:    fw,
 				Category:   "architecture",
 				Confidence: 0.7,
@@ -214,7 +214,7 @@ func (ms *MemoryStore) extractFromToolResult(result string) []AutoMemory {
 	if strings.Contains(result, "\"dependencies\"") || strings.Contains(result, "module ") {
 		if strings.Contains(result, "next") || strings.Contains(result, "Next") {
 			results = append(results, AutoMemory{
-				ID:         uuid.New().String(),
+				ID:         idgen.New(),
 				Content:    "Project uses Next.js",
 				Category:   "architecture",
 				Confidence: 0.95,
@@ -224,7 +224,7 @@ func (ms *MemoryStore) extractFromToolResult(result string) []AutoMemory {
 		}
 		if strings.Contains(result, "tailwindcss") {
 			results = append(results, AutoMemory{
-				ID:         uuid.New().String(),
+				ID:         idgen.New(),
 				Content:    "Project uses Tailwind CSS for styling",
 				Category:   "architecture",
 				Confidence: 0.95,

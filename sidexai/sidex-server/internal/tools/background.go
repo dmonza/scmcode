@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/sidex-ai/sidex-server/internal/idgen" // scmCode: clean-room UUIDv4, replaces github.com/google/uuid
 )
 
 // BackgroundShell is a long-lived shell process whose output can be polled.
@@ -68,7 +68,7 @@ func (m *BackgroundMgr) Start(command, dir string) (*BackgroundShell, error) {
 		return nil, fmt.Errorf("working_directory %q does not exist", dir)
 	}
 
-	id := "bg-" + uuid.New().String()[:8]
+	id := "bg-" + idgen.New()[:8]
 	bs := &BackgroundShell{
 		ID:        id,
 		Command:   command,
