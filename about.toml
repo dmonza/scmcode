@@ -39,4 +39,3 @@ targets = [
 # embed data into the binary.
 ignore-dev-dependencies = true
 ignore-build-dependencies = false
-
